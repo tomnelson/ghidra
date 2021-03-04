@@ -17,17 +17,18 @@ package ghidra.graph.viewer.event.mouse;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.Point2D;
 
 import javax.swing.JComponent;
 
 import docking.DockingUtils;
-import edu.uci.ics.jung.visualization.control.AbstractGraphMousePlugin;
 import ghidra.graph.viewer.*;
+import org.jungrapht.visualization.control.AbstractGraphMousePlugin;
 
 //@formatter:off
 public class VisualGraphEventForwardingGraphMousePlugin<V extends VisualVertex, 
 														E extends VisualEdge<V>>
-		extends AbstractGraphMousePlugin 
+		extends AbstractGraphMousePlugin
 		implements MouseListener, MouseMotionListener, VisualGraphMousePlugin<V, E> {
 //@formatter:on
 
@@ -52,7 +53,7 @@ public class VisualGraphEventForwardingGraphMousePlugin<V extends VisualVertex,
 	public boolean checkModifiers(MouseEvent e) {
 		int eventModifiers = e.getModifiersEx();
 		eventModifiers = turnOffControlKey(eventModifiers);
-		return ((eventModifiers & getModifiers()) == eventModifiers);
+		return ((eventModifiers & getModifiersEx()) == eventModifiers);
 	}
 
 	private int turnOffControlKey(int eventModifiers) {
@@ -195,7 +196,7 @@ public class VisualGraphEventForwardingGraphMousePlugin<V extends VisualVertex,
 		// create a mouse info for the current event
 		GraphViewer<V, E> viewer = startMouseInfo.getViewer();
 		V vertex = startMouseInfo.getVertex();
-		Point vertexRelativePoint =
+		Point2D vertexRelativePoint =
 			GraphViewerUtils.translatePointFromViewSpaceToVertexRelativeSpace(viewer, e.getPoint(),
 				vertex);
 

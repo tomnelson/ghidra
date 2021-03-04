@@ -15,7 +15,6 @@
  */
 package ghidra.app.plugin.core.functiongraph.graph.layout;
 
-import edu.uci.ics.jung.visualization.renderers.BasicEdgeRenderer;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.FunctionGraph;
 import ghidra.app.plugin.core.functiongraph.graph.jung.renderer.FGEdgeRenderer;
@@ -25,6 +24,8 @@ import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.layout.AbstractVisualGraphLayout;
 import ghidra.graph.viewer.layout.VisualGraphLayout;
 import ghidra.program.model.listing.Function;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.renderers.HeavyweightEdgeRenderer;
 
 /**
  * An abstract class that is the root for Function Graph layouts.  It changes the type of
@@ -47,8 +48,13 @@ public abstract class AbstractFGLayout extends AbstractVisualGraphLayout<FGVerte
 			FunctionGraph newGraph);
 
 	@Override
+	public Graph<FGVertex, FGEdge> getGraph() {
+		return (Graph<FGVertex, FGEdge>) graph;
+	}
+
+	@Override
 	public FunctionGraph getVisualGraph() {
-		return (FunctionGraph) getGraph();
+		return (FunctionGraph) (Graph<FGVertex,FGEdge>)getGraph();
 	}
 
 	@Override
@@ -69,7 +75,7 @@ public abstract class AbstractFGLayout extends AbstractVisualGraphLayout<FGVerte
 	}
 
 	@Override
-	public BasicEdgeRenderer<FGVertex, FGEdge> getEdgeRenderer() {
+	public HeavyweightEdgeRenderer<FGVertex, FGEdge> getEdgeRenderer() {
 		return new FGEdgeRenderer();
 	}
 }

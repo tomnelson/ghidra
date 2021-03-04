@@ -28,6 +28,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.swing.*;
 
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.VisualizationViewer;
 import org.junit.*;
 
 import docking.*;
@@ -37,9 +40,6 @@ import docking.menu.MultiStateDockingAction;
 import docking.util.image.Callout;
 import docking.util.image.CalloutComponentInfo;
 import docking.widgets.dialogs.MultiLineInputDialog;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.VisualizationServer;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
 import generic.test.TestUtils;
 import ghidra.app.cmd.function.DeleteFunctionCmd;
 import ghidra.app.cmd.label.AddLabelCmd;
@@ -362,7 +362,7 @@ public class FunctionGraphPluginScreenShots extends AbstractFunctionGraphTest {
 		VisualizationViewer<FGVertex, FGEdge> viewer = view.getPrimaryGraphViewer();
 		FunctionGraph functionGraph = getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 		Rectangle layoutBounds =
 			GraphViewerUtils.getBoundsForVerticesInLayoutSpace(viewer, vertices);
 		Rectangle viewBounds =

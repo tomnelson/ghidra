@@ -17,12 +17,11 @@ package ghidra.graph.viewer.edge;
 
 import java.awt.BasicStroke;
 import java.awt.Stroke;
+import java.util.function.Function;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.visualization.picking.PickedInfo;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import org.jungrapht.visualization.selection.SelectedState;
 
 public class VisualGraphEdgeStrokeTransformer<V extends VisualVertex, E extends VisualEdge<V>>
 		implements Function<E, Stroke> {
@@ -30,16 +29,16 @@ public class VisualGraphEdgeStrokeTransformer<V extends VisualVertex, E extends 
 	private static final Stroke BASIC_STROKE = new BasicStroke(1);
 	private final Stroke HEAVY_STROKE;
 
-	private final PickedInfo<E> pickedInfo;
+	private final SelectedState<E> pickedInfo;
 
-	public VisualGraphEdgeStrokeTransformer(PickedInfo<E> pickedInfo, int pickedStrokeSize) {
+	public VisualGraphEdgeStrokeTransformer(SelectedState<E> pickedInfo, int pickedStrokeSize) {
 		HEAVY_STROKE = new BasicStroke(pickedStrokeSize);
 		this.pickedInfo = pickedInfo;
 	}
 
 	@Override
 	public Stroke apply(E e) {
-		if (pickedInfo.isPicked(e)) {
+		if (pickedInfo.isSelected(e)) {
 			return HEAVY_STROKE;
 		}
 		return BASIC_STROKE;

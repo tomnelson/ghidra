@@ -18,11 +18,11 @@ package ghidra.graph.viewer.event.mouse;
 import java.awt.Cursor;
 import java.awt.event.MouseEvent;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.event.picking.GPickedState;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.selection.SelectedState;
 
 public class VisualGraphEdgeSelectionGraphMousePlugin<V extends VisualVertex, E extends VisualEdge<V>>
 		extends VisualGraphAbstractGraphMousePlugin<V, E> {
@@ -58,22 +58,22 @@ public class VisualGraphEdgeSelectionGraphMousePlugin<V extends VisualVertex, E 
 		// on double-clicks we go to the vertex in the current edge direction unless that vertex
 		// is already selected, then we go to the other vertex
 		GraphViewer<V, E> viewer = getGraphViewer(e);
-		PickedState<V> pickedVertexState = viewer.getPickedVertexState();
+		SelectedState<V> pickedVertexState = viewer.getSelectedVertexState();
 
-		Layout<V, E> layout = viewer.getGraphLayout();
+		LayoutModel<V> layout = viewer.getVisualizationModel().getLayoutModel();
 		Graph<V, E> graph = layout.getGraph();
-		V destination = graph.getDest(edgeReference);
-		if (!pickedVertexState.isPicked(destination)) {
+		V destination = graph.getEdgeTarget(edgeReference);
+		if (!pickedVertexState.isSelected(destination)) {
 			pickAndShowVertex(destination, pickedVertexState, viewer);
 			return;
 		}
 
 		// the destination was picked, go the other direction
-		V source = graph.getSource(edgeReference);
+		V source = graph.getEdgeSource(edgeReference);
 		pickAndShowVertex(source, pickedVertexState, viewer);
 	}
 
-	private void pickAndShowVertex(V vertex, PickedState<V> pickedVertexState,
+	private void pickAndShowVertex(V vertex, SelectedState<V> pickedVertexState,
 			GraphViewer<V, E> viewer) {
 
 		VisualGraphViewUpdater<V, E> updater = viewer.getViewUpdater();

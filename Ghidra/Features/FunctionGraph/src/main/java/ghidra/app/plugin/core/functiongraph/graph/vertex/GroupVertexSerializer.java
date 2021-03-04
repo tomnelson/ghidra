@@ -20,13 +20,15 @@ import java.util.*;
 
 import org.jdom.Element;
 
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.FunctionGraph;
 import ghidra.app.plugin.core.functiongraph.mvc.FGController;
 import ghidra.app.plugin.core.functiongraph.mvc.FGData;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSetView;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.util.PointUtils;
 
 public class GroupVertexSerializer {
 
@@ -49,7 +51,7 @@ public class GroupVertexSerializer {
 	public static Element getXMLForGroupedVertices(FunctionGraph functionGraph) {
 		Element element = new Element(GROUP_VERTICES_ELEMENT_NAME);
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 		for (FGVertex vertex : vertices) {
 			if (vertex instanceof GroupedFunctionGraphVertex) {
 				GroupedVertexInfo info =
@@ -78,7 +80,7 @@ public class GroupVertexSerializer {
 		FGData functionGraphData = controller.getFunctionGraphData();
 		FunctionGraph functionGraph = functionGraphData.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 		for (FGVertex vertex : vertices) {
 			if (vertex instanceof GroupedFunctionGraphVertex) {
 				//
@@ -112,7 +114,7 @@ public class GroupVertexSerializer {
 			return;
 		}
 
-		controller.installGroupVertex(vertex, location);
+		controller.installGroupVertex(vertex, PointUtils.convert(location));
 	}
 
 	private static Map<AddressHasher, FGVertex> hashVerticesByStartAndEndAddress(

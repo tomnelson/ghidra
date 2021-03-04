@@ -16,11 +16,8 @@
 package ghidra.app.plugin.core.functiongraph.graph.layout;
 
 import java.awt.Shape;
-import java.awt.geom.Point2D;
+import java.util.function.BiFunction;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.visualization.renderers.BasicEdgeRenderer;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.FunctionGraph;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
@@ -31,6 +28,10 @@ import ghidra.graph.viewer.renderer.ArticulatedEdgeRenderer;
 import ghidra.graph.viewer.shape.ArticulatedEdgeTransformer;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.renderers.HeavyweightEdgeRenderer;
 
 public class EmptyLayout extends AbstractVisualGraphLayout<FGVertex, FGEdge> implements FGLayout {
 
@@ -51,12 +52,12 @@ public class EmptyLayout extends AbstractVisualGraphLayout<FGVertex, FGEdge> imp
 	}
 
 	@Override
-	public BasicEdgeRenderer<FGVertex, FGEdge> getEdgeRenderer() {
+	public HeavyweightEdgeRenderer<FGVertex, FGEdge> getEdgeRenderer() {
 		return new ArticulatedEdgeRenderer<>();
 	}
 
 	@Override
-	public Function<FGEdge, Shape> getEdgeShapeTransformer() {
+	public BiFunction<Graph<FGVertex, FGEdge>, FGEdge, Shape> getEdgeShapeTransformer() {
 		return new ArticulatedEdgeTransformer<>();
 	}
 
@@ -91,23 +92,33 @@ public class EmptyLayout extends AbstractVisualGraphLayout<FGVertex, FGEdge> imp
 	}
 
 	@Override
-	public void setLocation(FGVertex v, Point2D location, ChangeType changeType) {
+	public void setLocation(FGVertex v, Point location, ChangeType changeType) {
 		// stub
 	}
 
 	@Override
-	public void addLayoutListener(LayoutListener<FGVertex, FGEdge> listener) {
+	public void addLayoutListener(LayoutListener<FGVertex> listener) {
 		// stub
 	}
 
 	@Override
-	public void removeLayoutListener(LayoutListener<FGVertex, FGEdge> listener) {
+	public void removeLayoutListener(LayoutListener<FGVertex> listener) {
 		// stub
 	}
 
 	@Override
 	public void dispose() {
 		// stub
+	}
+
+	@Override
+	public LayoutModel<FGVertex> layoutModel() {
+		return this;
+	}
+
+	@Override
+	public Graph<FGVertex, FGEdge> getGraph() {
+		return (Graph<FGVertex, FGEdge>) graph;
 	}
 
 	@Override

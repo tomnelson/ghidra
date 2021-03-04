@@ -17,10 +17,9 @@ package ghidra.graph.viewer.event.mouse;
 
 import java.awt.event.MouseEvent;
 
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.PickingGraphMousePlugin;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.*;
+import org.jungrapht.visualization.VisualizationViewer;
 
 /**
  * An interface to provide a common set of methods for classes that could not otherwise 
@@ -29,7 +28,7 @@ import ghidra.graph.viewer.*;
  * 
  * <P>Note: The implementors of this interface still use the deprecated 
  * {@link MouseEvent#getModifiers()} method, since many of those classes extends from 
- * 3rd-party classes that still use them, such as {@link PickingGraphMousePlugin}.   We will need
+ * 3rd-party classes that still use them, such as {@link SelectingGraphMousePlugin}.   We will need
  * to update the library (if/when possible), or rewrite our code so that it does not use the 
  * old 3rd-party algorithms. 
  *
@@ -38,7 +37,7 @@ import ghidra.graph.viewer.*;
  */
 public interface VisualGraphMousePlugin<V extends VisualVertex, E extends VisualEdge<V>> {
 
-	public default VisualizationViewer<V, E> getViewer(MouseEvent e) {
+	default VisualizationViewer<V, E> getViewer(MouseEvent e) {
 		GraphViewer<V, E> viewer = getGraphViewer(e);
 		return viewer;
 	}

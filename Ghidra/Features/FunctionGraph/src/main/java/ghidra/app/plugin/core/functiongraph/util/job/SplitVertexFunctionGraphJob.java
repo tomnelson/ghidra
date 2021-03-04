@@ -23,10 +23,6 @@ import org.apache.commons.collections4.IterableUtils;
 import org.jdesktop.animation.timing.Animator;
 import org.jdesktop.animation.timing.interpolation.PropertySetter;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.VisualizationServer;
-import edu.uci.ics.jung.visualization.util.Caching;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.FunctionGraph;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
@@ -34,21 +30,26 @@ import ghidra.app.plugin.core.functiongraph.mvc.FGController;
 import ghidra.app.plugin.core.functiongraph.mvc.FGData;
 import ghidra.graph.job.AbstractAnimatorJob;
 import ghidra.graph.viewer.GraphViewerUtils;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.layout.util.Caching;
 
 public class SplitVertexFunctionGraphJob extends AbstractAnimatorJob {
 
 	private static final int DURATION = 1500;
 
 	private final VisualizationServer<FGVertex, FGEdge> viewer;
-	private Layout<FGVertex, FGEdge> graphLayout;
+	private LayoutModel<FGVertex> layoutModel;
 	private final FGVertex toSplitVertex;
 	private final FGVertex parentVertex;
 	private final FGVertex childVertex;
 
-	private Point2D parentStart;
-	private Point2D childStart;
-	private Point2D parentDestination;
-	private Point2D childDestination;
+	private Point parentStart;
+	private Point childStart;
+	private Point parentDestination;
+	private Point childDestination;
 
 	private final boolean useAnimation;
 
@@ -63,7 +64,7 @@ public class SplitVertexFunctionGraphJob extends AbstractAnimatorJob {
 		this.parentVertex = newParentVertex;
 		this.childVertex = newChildVertex;
 		this.useAnimation = useAnimation;
-		this.graphLayout = viewer.getGraphLayout();
+		this.layoutModel = viewer.getVisualizationModel().getLayoutModel();
 
 		updateOpacity(0D); // don't paint the new vertices or edges initially
 	}
@@ -107,8 +108,8 @@ public class SplitVertexFunctionGraphJob extends AbstractAnimatorJob {
 		}
 
 		clearLocationCache();
-		graphLayout.setLocation(parentVertex, parentDestination);
-		graphLayout.setLocation(childVertex, childDestination);
+		layoutModel.set(parentVertex, parentDestination);
+		layoutModel.set(childVertex, childDestination);
 		removeOldVertexAndEdges();
 
 		updateOpacity(1D);
@@ -138,7 +139,7 @@ public class SplitVertexFunctionGraphJob extends AbstractAnimatorJob {
 	}
 
 	protected void clearLocationCache() {
-		Layout<FGVertex, FGEdge> jungLayout = viewer.getGraphLayout();
+		LayoutModel<FGVertex> jungLayout = viewer.getVisualizationModel().getLayoutModel();
 		((Caching) jungLayout).clear();
 	}
 
@@ -150,32 +151,34 @@ public class SplitVertexFunctionGraphJob extends AbstractAnimatorJob {
 		// The new position is some percentage of the distance between the start 
 		// position and the destination position
 		//
-		double parentDestinationX = parentDestination.getX();
-		double parentDeltaX = (parentDestinationX - parentStart.getX()) * percentComplete;
-		double childDestinationY = childDestination.getY();
-		double childDeltaY = (childDestinationY - childStart.getY()) * percentComplete;
+		double parentDestinationX = parentDestination.x;
+		double parentDeltaX = (parentDestinationX - parentStart.x) * percentComplete;
+		double childDestinationY = childDestination.y;
+		double childDeltaY = (childDestinationY - childStart.y) * percentComplete;
 
-		double childDestinationX = childDestination.getX();
-		double childDeltaX = (childDestinationX - childStart.getX()) * percentComplete;
-		double parentDestinationY = parentDestination.getY();
-		double parentDeltaY = (parentDestinationY - parentStart.getY()) * percentComplete;
+		double childDestinationX = childDestination.x;
+		double childDeltaX = (childDestinationX - childStart.x) * percentComplete;
+		double parentDestinationY = parentDestination.y;
+		double parentDeltaY = (parentDestinationY - parentStart.y) * percentComplete;
 
-		double newParentX = parentStart.getX() + parentDeltaX;
-		double newParentY = parentStart.getY() + parentDeltaY;
+		double newParentX = parentStart.x + parentDeltaX;
+		double newParentY = parentStart.y + parentDeltaY;
 
-		double newChildX = childStart.getX() + childDeltaX;
-		double newChildY = childStart.getY() + childDeltaY;
+		double newChildX = childStart.x + childDeltaX;
+		double newChildY = childStart.y+ childDeltaY;
 
-		Point2D newParentLocation = new Point2D.Double(newParentX, newParentY);
-		Point2D newChildLocation = new Point2D.Double(newChildX, newChildY);
+		Point newParentLocation = Point.of(newParentX, newParentY);
+		Point newChildLocation = Point.of(newChildX, newChildY);
 
 		// this is needed for the edges to paint correctly, as they may be articulated
-		parentVertex.setLocation(newParentLocation);
-		childVertex.setLocation(newChildLocation);
+		layoutModel.set(parentVertex, newParentLocation);
+		layoutModel.set(childVertex, newChildLocation);
+//		parentVertex.setLocation(newParentLocation);
+//		childVertex.setLocation(newChildLocation);
 
 		clearLocationCache(); // the new values won't be read if we don't clear the cache
-		graphLayout.setLocation(parentVertex, newParentLocation);
-		graphLayout.setLocation(childVertex, newChildLocation);
+		layoutModel.set(parentVertex, newParentLocation);
+		layoutModel.set(childVertex, newChildLocation);
 	}
 
 	private void initializeVertexLocations() {
@@ -184,9 +187,9 @@ public class SplitVertexFunctionGraphJob extends AbstractAnimatorJob {
 		// be the initial (start) location for each one and the destination location for each
 		// one.  This allows us to show a transition from the start to the destination point.
 		//
-		Point2D oldLocation = graphLayout.apply(toSplitVertex);
+		Point oldLocation = layoutModel.apply(toSplitVertex);
 		Point2D oldLocationProperty = toSplitVertex.getLocation();
-		Point2D parentLocation = (Point2D) oldLocation.clone();
+		Point parentLocation = oldLocation;
 		Point2D parentLocationProperty = (Point2D) oldLocationProperty.clone();
 
 		// Update the new parent node to compensate for its new size.  This code effectively 
@@ -196,24 +199,24 @@ public class SplitVertexFunctionGraphJob extends AbstractAnimatorJob {
 		Rectangle originalBounds = toSplitVertex.getBounds();
 		Rectangle newBounds = parentVertex.getBounds();
 		int dy = (newBounds.height - originalBounds.height) >> 1;
-		parentLocation.setLocation(parentLocation.getX(), parentLocation.getY() + dy);
+		parentLocation = parentLocation.add(0, dy);
 
 		parentStart = parentLocation;
 		parentDestination = parentStart; // this vertex doesn't move
 		childStart = parentStart; // this vertex starts at the same place as the parent
 
 		parentVertex.setLocation(parentLocationProperty);
-		graphLayout.setLocation(parentVertex, parentLocation); // tell the graph the new location
+		layoutModel.set(parentVertex, parentLocation); // tell the graph the new location
 
-		Point2D childStartLocation = (Point2D) parentLocation.clone();
+		Point childStartLocation =parentLocation;
 		childVertex.setLocation(oldLocationProperty);
-		graphLayout.setLocation(childVertex, childStartLocation); // tell the graph the new location
+		layoutModel.set(childVertex, childStartLocation); // tell the graph the new location
 
 		// Move the new child vertex down and add space between it and its parent.
 		Rectangle parentBounds = parentVertex.getBounds();
-		double childY = childStartLocation.getY() + parentBounds.height +
+		double childY = childStartLocation.y + parentBounds.height +
 			GraphViewerUtils.EXTRA_LAYOUT_ROW_SPACING;
-		childDestination = new Point2D.Double(childStartLocation.getX(), childY);
+		childDestination = Point.of(childStartLocation.x, childY);
 
 		// note: due to the caching nature of some layouts, if we don't reset this, then 
 		// some of our GUI calculations will be incorrect (like when we try to fit the 
@@ -257,14 +260,14 @@ public class SplitVertexFunctionGraphJob extends AbstractAnimatorJob {
 	}
 
 	private Collection<FGEdge> getEdges(FGVertex vertex) {
-		Graph<FGVertex, FGEdge> graph = graphLayout.getGraph();
+		Graph<FGVertex, FGEdge> graph = layoutModel.getGraph();
 		List<FGEdge> edges = new LinkedList<>();
-		Collection<FGEdge> inEdges = graph.getInEdges(vertex);
+		Collection<FGEdge> inEdges = graph.incomingEdgesOf(vertex);
 		if (inEdges != null) {
 			edges.addAll(inEdges);
 		}
 
-		Collection<FGEdge> outEdges = graph.getOutEdges(vertex);
+		Collection<FGEdge> outEdges = graph.outgoingEdgesOf(vertex);
 		if (outEdges != null) {
 			edges.addAll(outEdges);
 		}

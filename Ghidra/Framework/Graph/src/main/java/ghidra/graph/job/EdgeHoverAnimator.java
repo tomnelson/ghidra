@@ -19,11 +19,9 @@ import java.util.function.Supplier;
 
 import org.jdesktop.animation.timing.Animator;
 import org.jdesktop.animation.timing.interpolation.PropertySetter;
-
-import edu.uci.ics.jung.visualization.VisualizationServer;
-import edu.uci.ics.jung.visualization.renderers.Renderer;
-import edu.uci.ics.jung.visualization.renderers.Renderer.Edge;
 import ghidra.graph.viewer.edge.VisualEdgeRenderer;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.renderers.Renderer;
 
 public class EdgeHoverAnimator<V, E> extends AbstractAnimator {
 
@@ -87,7 +85,7 @@ public class EdgeHoverAnimator<V, E> extends AbstractAnimator {
 
 	private void updateRendererPaintOffset(VisualizationServer<V, E> viewer, float newPaintOffset) {
 		Renderer<V, E> renderer = viewer.getRenderer();
-		Edge<V, E> edgeRenderer = renderer.getEdgeRenderer();
+		Renderer.Edge<V, E> edgeRenderer = renderer.getEdgeRenderer();
 		if (!(edgeRenderer instanceof VisualEdgeRenderer)) {
 			return; // something is wrong here!
 		}

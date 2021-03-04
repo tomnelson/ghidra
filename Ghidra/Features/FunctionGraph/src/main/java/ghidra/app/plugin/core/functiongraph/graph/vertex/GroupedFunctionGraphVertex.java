@@ -15,13 +15,9 @@
  */
 package ghidra.app.plugin.core.functiongraph.graph.vertex;
 
-import java.awt.Point;
 import java.awt.geom.Point2D;
 import java.util.*;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.FGVertexType;
 import ghidra.app.plugin.core.functiongraph.mvc.*;
@@ -30,6 +26,10 @@ import ghidra.program.model.listing.Program;
 import ghidra.program.model.symbol.RefType;
 import ghidra.util.SystemUtilities;
 import ghidra.util.exception.AssertException;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
 
 public class GroupedFunctionGraphVertex extends AbstractFunctionGraphVertex {
 
@@ -49,7 +49,7 @@ public class GroupedFunctionGraphVertex extends AbstractFunctionGraphVertex {
 	 * values allow us to restore the vertices to the place from whence they came (even though 
 	 * the locations may be irrelevant).
 	 */
-	private Map<FGVertex, Point2D> preGroupingVertexLocations = new HashMap<>();
+	private Map<FGVertex, Point> preGroupingVertexLocations = new HashMap<>();
 
 	private boolean doHashCode = true;
 	private int hashCode;
@@ -245,22 +245,22 @@ public class GroupedFunctionGraphVertex extends AbstractFunctionGraphVertex {
 		}
 	}
 
-	private Map<FGVertex, Point2D> getCurrentVertexLocations() {
+	private Map<FGVertex, Point> getCurrentVertexLocations() {
 		FGController fgController = getController();
 		FGView view = fgController.getView();
 		VisualizationViewer<FGVertex, FGEdge> viewer = view.getPrimaryGraphViewer();
-		Layout<FGVertex, FGEdge> graphLayout = viewer.getGraphLayout();
-		Graph<FGVertex, FGEdge> graph = graphLayout.getGraph();
-		Collection<FGVertex> currentVertices = graph.getVertices();
-		Map<FGVertex, Point2D> map = new HashMap<>();
+		LayoutModel<FGVertex> layoutModel = viewer.getVisualizationModel().getLayoutModel();
+		Graph<FGVertex, FGEdge> graph = layoutModel.getGraph();
+		Collection<FGVertex> currentVertices = graph.vertexSet();
+		Map<FGVertex, Point> map = new HashMap<>();
 		for (FGVertex vertex : currentVertices) {
 			if (vertex == this) {
 				// not sure if we need to do this, but, conceptually, we are getting the locations
 				// in the graph before this group node is installed
 				continue;
 			}
-			Point2D point2D = graphLayout.apply(vertex);
-			map.put(vertex, new Point((int) point2D.getX(), (int) point2D.getY()));
+			Point point = layoutModel.apply(vertex);
+			map.put(vertex, point);//new java.awt.Point( (int)point2D.x, (int)point2D.y));
 		}
 		return map;
 	}
@@ -400,7 +400,7 @@ public class GroupedFunctionGraphVertex extends AbstractFunctionGraphVertex {
 		return Collections.unmodifiableSet(ungroupedEdges);
 	}
 
-	public Map<FGVertex, Point2D> getPreGroupLocations() {
+	public Map<FGVertex, Point> getPreGroupLocations() {
 		return Collections.unmodifiableMap(preGroupingVertexLocations);
 	}
 

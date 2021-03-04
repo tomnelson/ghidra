@@ -21,9 +21,11 @@ import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.control.SatelliteVisualizationViewer;
 import ghidra.graph.viewer.*;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.SatelliteVisualizationViewer;
+import org.jungrapht.visualization.VisualizationViewer;
 
 public abstract class VisualGraphSatelliteAbstractGraphMousePlugin<V extends VisualVertex, E extends VisualEdge<V>>
 		extends VisualGraphAbstractGraphMousePlugin<V, E> {

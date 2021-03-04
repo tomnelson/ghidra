@@ -20,14 +20,14 @@ import java.awt.event.MouseEvent;
 import java.util.*;
 
 import docking.*;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 import ghidra.framework.options.SaveState;
 import ghidra.graph.featurette.VgSatelliteFeaturette;
 import ghidra.graph.featurette.VisualGraphFeaturette;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.actions.*;
 import ghidra.graph.viewer.event.mouse.VertexMouseInfo;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.selection.SelectedState;
 
 /**
  * A base component provider for displaying {@link VisualGraph}s
@@ -104,8 +104,8 @@ public abstract class VisualGraphComponentProvider<V extends VisualVertex,
 	public Set<V> getSelectedVertices() {
 		VisualGraphView<V, E, G> view = getView();
 		VisualizationViewer<V, E> viewer = view.getPrimaryGraphViewer();
-		PickedState<V> pickedState = viewer.getPickedVertexState();
-		return pickedState.getPicked();
+		SelectedState<V> pickedState = viewer.getSelectedVertexState();
+		return pickedState.getSelected();
 	}
 
 	protected ComponentProvider getSatelliteProvider() {

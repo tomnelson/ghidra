@@ -21,14 +21,15 @@ import java.util.Map.Entry;
 
 import org.jdesktop.animation.timing.Animator;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.util.Caching;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.layout.*;
 import ghidra.graph.viewer.layout.LayoutListener.ChangeType;
 import ghidra.util.SystemUtilities;
 import ghidra.util.task.TaskLauncher;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.layout.util.Caching;
 
 /**
  * A job to transition vertices in a graph for location and visibility.  The parent class 
@@ -53,7 +54,7 @@ public abstract class AbstractGraphTransitionJob<V extends VisualVertex, E exten
 
 	// not sure why we need these, as opposed to just using the 'edgeArticulationLocations', but
 	// these points are different--I would like a better description of how these are different
-	protected Map<E, List<Point2D>> finalEdgeArticulations = new HashMap<>();
+	protected Map<E, List<Point>> finalEdgeArticulations = new HashMap<>();
 
 	protected AbstractGraphTransitionJob(GraphViewer<V, E> viewer, boolean useAnimation) {
 
@@ -103,26 +104,26 @@ public abstract class AbstractGraphTransitionJob<V extends VisualVertex, E exten
 		super.setPercentComplete(percentComplete);
 	}
 
-	protected void updatePointFromPercentComplete(TransitionPoints transitionPoints,
-			double percentComplete, Point2D updatePoint) {
-		double startX = transitionPoints.startPoint.getX();
-		double destinationX = transitionPoints.destinationPoint.getX();
+	protected Point updatePointFromPercentComplete(TransitionPoints transitionPoints,
+			double percentComplete) {
+		double startX = transitionPoints.startPoint.x;
+		double destinationX = transitionPoints.destinationPoint.x;
 		double deltaX = (destinationX - startX) * percentComplete;
 
-		double startY = transitionPoints.startPoint.getY();
-		double destinationY = transitionPoints.destinationPoint.getY();
+		double startY = transitionPoints.startPoint.y;
+		double destinationY = transitionPoints.destinationPoint.y;
 		double deltaY = (destinationY - startY) * percentComplete;
 
-		double newX = transitionPoints.startPoint.getX() + deltaX;
-		double newY = transitionPoints.startPoint.getY() + deltaY;
+		double newX = transitionPoints.startPoint.x + deltaX;
+		double newY = transitionPoints.startPoint.y + deltaY;
 
-		updatePoint.setLocation(newX, newY);
+		return Point.of(newX, newY);
 	}
 
 	protected void installFinalEdgeArticulations() {
 		Collection<E> edges = graph.getEdges();
 		for (E edge : edges) {
-			List<Point2D> articulations = finalEdgeArticulations.get(edge);
+			List<Point> articulations = finalEdgeArticulations.get(edge);
 			if (articulations == null) {
 				// Depending upon the value of 'relayout', we may have removed articulations
 				articulations = Collections.emptyList();
@@ -139,8 +140,7 @@ public abstract class AbstractGraphTransitionJob<V extends VisualVertex, E exten
 		//
 		Set<Entry<V, TransitionPoints>> entrySet = vertexLocations.entrySet();
 		for (Entry<V, TransitionPoints> entry : entrySet) {
-			Point2D newVertexLocation = new Point2D.Double();
-			updatePointFromPercentComplete(entry.getValue(), percentComplete, newVertexLocation);
+			Point newVertexLocation = updatePointFromPercentComplete(entry.getValue(), percentComplete);
 
 			// the new values won't be read if we don't clear the cache 
 			clearLocationCache();
@@ -155,8 +155,7 @@ public abstract class AbstractGraphTransitionJob<V extends VisualVertex, E exten
 			for (ArticulationTransitionPoints transitionPoint : transitions) {
 				// manipulate the edges locations directly, as not to incur excess object creation
 				// (the start point is copied from the edge during initialization)
-				Point2D updatePoint = transitionPoint.pointToUpdate;
-				updatePointFromPercentComplete(transitionPoint, percentComplete, updatePoint);
+				transitionPoint.pointToUpdate = updatePointFromPercentComplete(transitionPoint, percentComplete);
 			}
 		}
 	}
@@ -170,7 +169,7 @@ public abstract class AbstractGraphTransitionJob<V extends VisualVertex, E exten
 		return LayoutPositions.getCurrentPositions(graph, graphLayout);
 	}
 
-	protected Point2D toLocation(V v) {
+	protected Point toLocation(V v) {
 		return graphLayout.apply(v);
 	}
 
@@ -178,7 +177,7 @@ public abstract class AbstractGraphTransitionJob<V extends VisualVertex, E exten
 	// some of our GUI calculations will be incorrect (like when we try to fit the 
 	// satellite in it's window).  So, we always have to clear the cache when we set locations
 	protected void clearLocationCache() {
-		Layout<V, E> jungLayout = viewer.getGraphLayout();
+		LayoutModel<V> jungLayout = viewer.getVisualizationModel().getLayoutModel();
 		((Caching) jungLayout).clear();
 	}
 
@@ -226,10 +225,10 @@ public abstract class AbstractGraphTransitionJob<V extends VisualVertex, E exten
 //==================================================================================================
 
 	protected class TransitionPoints {
-		public Point2D startPoint;
-		public Point2D destinationPoint;
+		public Point startPoint;
+		public Point destinationPoint;
 
-		public TransitionPoints(Point2D startPoint, Point2D destinationPoint) {
+		public TransitionPoints(Point startPoint, Point destinationPoint) {
 			if (startPoint == null) {
 				throw new IllegalArgumentException("Start point cannot be null");
 			}
@@ -250,10 +249,10 @@ public abstract class AbstractGraphTransitionJob<V extends VisualVertex, E exten
 	}
 
 	protected class ArticulationTransitionPoints extends TransitionPoints {
-		public Point2D pointToUpdate;
+		public Point pointToUpdate;
 
-		public ArticulationTransitionPoints(Point2D currentEdgePoint, Point2D destinationPoint) {
-			super((Point2D) currentEdgePoint.clone(), destinationPoint);
+		public ArticulationTransitionPoints(Point currentEdgePoint, Point destinationPoint) {
+			super(currentEdgePoint, destinationPoint);
 			this.pointToUpdate = currentEdgePoint;
 		}
 	}

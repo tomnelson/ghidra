@@ -16,21 +16,29 @@
 package ghidra.graph.viewer.vertex;
 
 import static ghidra.graph.viewer.GraphViewerUtils.INTERACTION_ZOOM_THRESHOLD;
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
-import java.awt.*;
+import java.awt.AlphaComposite;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Rectangle;
+import java.awt.Shape;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
+import java.util.function.Function;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.renderers.BasicVertexRenderer;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
-import edu.uci.ics.jung.visualization.transform.MutableTransformerDecorator;
-import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import org.apache.logging.log4j.core.Layout;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.renderers.HeavyweightVertexRenderer;
+import org.jungrapht.visualization.transform.MutableTransformer;
+import org.jungrapht.visualization.transform.MutableTransformerDecorator;
+import org.jungrapht.visualization.transform.shape.GraphicsDecorator;
 
 /**
  * A base renderer class to define shared logic needed to render a vertex
@@ -39,14 +47,14 @@ import ghidra.graph.viewer.VisualVertex;
  * @param <E> the edge type
  */
 public class AbstractVisualVertexRenderer<V extends VisualVertex, E extends VisualEdge<V>>
-		extends BasicVertexRenderer<V, E> {
+		extends HeavyweightVertexRenderer<V, E> {
 
 	/**
 	 * Creates a copy of the given {@link GraphicsDecorator} that may have scaling tweaked to 
 	 * handle {@link VisualVertex#getEmphasis()} emphasized vertices.
 	 */
 	protected GraphicsDecorator getEmphasisGraphics(GraphicsDecorator g, V vertex,
-			RenderContext<V, E> rc, Layout<V, E> layout) {
+													RenderContext<V, E> rc, LayoutModel<V> layout) {
 
 		Graphics2D graphicsCopy = (Graphics2D) g.create();
 		GraphicsDecorator decoratorCopy = new GraphicsDecorator(graphicsCopy);
@@ -68,12 +76,13 @@ public class AbstractVisualVertexRenderer<V extends VisualVertex, E extends Visu
 			return decoratorCopy;
 		}
 
-		Point2D p = layout.apply(vertex);
+		Point p = layout.apply(vertex);
 		MultiLayerTransformer multiLayerTransformer = rc.getMultiLayerTransformer();
-		p = multiLayerTransformer.transform(Layer.LAYOUT, p);
+		Point2D p2d = multiLayerTransformer.transform(Layer.LAYOUT, new Point2D.Double(p.x, p.y));
+		p = Point.of(p2d.getX(), p2d.getY());
 
-		double vertexX = p.getX();
-		double vertexY = p.getY();
+		double vertexX = p.x;
+		double vertexY = p.y;
 		AffineTransform xf = AffineTransform.getTranslateInstance(vertexX, vertexY);
 		emphasis = adjustValueForCurrentScale(rc, emphasis, .5);
 		double newScale = 1.0 + emphasis;
@@ -157,9 +166,9 @@ public class AbstractVisualVertexRenderer<V extends VisualVertex, E extends Visu
 	 * @return the vertex shape
 	 * @see VertexShapeProvider#getCompactShape()
 	 */
-	protected Shape getCompactShape(RenderContext<V, E> rc, Layout<V, E> layout, V vertex) {
+	protected Shape getCompactShape(RenderContext<V, E> rc, LayoutModel<V> layout, V vertex) {
 
-		Function<? super V, Shape> vertexShaper = rc.getVertexShapeTransformer();
+		Function<? super V, Shape> vertexShaper = rc.getVertexShapeFunction();
 		Shape shape = null;
 		if (vertexShaper instanceof VisualGraphVertexShapeTransformer) {
 			@SuppressWarnings("unchecked")
@@ -185,8 +194,8 @@ public class AbstractVisualVertexRenderer<V extends VisualVertex, E extends Visu
 	 * @return the vertex shape
 	 * @see VertexShapeProvider#getFullShape()
 	 */
-	public Shape getFullShape(RenderContext<V, E> rc, Layout<V, E> layout, V vertex) {
-		Function<? super V, Shape> vertexShaper = rc.getVertexShapeTransformer();
+	public Shape getFullShape(RenderContext<V, E> rc, LayoutModel<V> layout, V vertex) {
+		Function<? super V, Shape> vertexShaper = rc.getVertexShapeFunction();
 		Shape shape = null;
 		if (vertexShaper instanceof VisualGraphVertexShapeTransformer) {
 			@SuppressWarnings("unchecked")
@@ -212,14 +221,15 @@ public class AbstractVisualVertexRenderer<V extends VisualVertex, E extends Visu
 	 * @param shape the shape to translate
 	 * @return the new shape
 	 */
-	protected Shape transformFromLayoutToView(RenderContext<V, E> rc, Layout<V, E> layout, V vertex,
+	protected Shape transformFromLayoutToView(RenderContext<V, E> rc, LayoutModel<V> layout, V vertex,
 			Shape shape) {
 
-		Point2D p = layout.apply(vertex);
+		Point p = layout.apply(vertex);
 		MultiLayerTransformer multiLayerTransformer = rc.getMultiLayerTransformer();
-		p = multiLayerTransformer.transform(Layer.LAYOUT, p);
-		float x = (float) p.getX();
-		float y = (float) p.getY();
+		Point2D p2d = multiLayerTransformer.transform(Layer.LAYOUT, new Point2D.Double(p.x, p.y));
+		p = Point.of(p2d.getX(), p2d.getY());
+		float x = (float) p.x;
+		float y = (float) p.y;
 
 		// create a transform that translates to the location of
 		// the vertex to be rendered

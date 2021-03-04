@@ -18,16 +18,20 @@ package ghidra.graph.viewer.event.mouse;
 import java.awt.event.MouseEvent;
 
 import docking.DockingUtils;
-import edu.uci.ics.jung.visualization.control.SatelliteScalingGraphMousePlugin;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.options.VisualGraphOptions;
+import org.jungrapht.visualization.control.Modifiers;
+import org.jungrapht.visualization.control.SatelliteScalingGraphMousePlugin;
 
 public class VisualGraphSatelliteScalingGraphMousePlugin<V extends VisualVertex, E extends VisualEdge<V>>
 		extends SatelliteScalingGraphMousePlugin implements VisualGraphMousePlugin<V, E> {
 
 	public VisualGraphSatelliteScalingGraphMousePlugin() {
 		// no modifiers set here--we will always check ourselves
-		super(new VisualGraphScalingControl(), 0, 1 / 1.1f, 1.1f);
+		super(new VisualGraphScalingControl(),
+				0, MouseEvent.CTRL_DOWN_MASK,
+				DockingUtils.CONTROL_KEY_MODIFIER_MASK,
+				1 / 1.1f, 1.1f);
 		setZoomAtMouse(false);
 	}
 

@@ -21,21 +21,24 @@ import java.awt.geom.*;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Function;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.algorithms.layout.*;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.util.Pair;
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.picking.PickedState;
-import edu.uci.ics.jung.visualization.picking.ShapePickSupport;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import ghidra.graph.GraphAlgorithms;
 import ghidra.graph.viewer.event.mouse.VertexMouseInfo;
 import ghidra.graph.viewer.layout.VisualGraphLayout;
 import ghidra.graph.viewer.shape.GraphLoopShape;
 import ghidra.graph.viewer.vertex.VisualGraphVertexShapeTransformer;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.control.GraphElementAccessor;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.selection.SelectedState;
+import org.jungrapht.visualization.selection.ShapePickSupport;
+import org.jungrapht.visualization.transform.MutableTransformer;
+
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 /**
  * This class houses various methods for translating location and size data from the various
@@ -86,13 +89,13 @@ public class GraphViewerUtils {
 	public static <V, E> Point translatePointFromViewSpaceToVertexRelativeSpace(
 			VisualizationServer<V, E> viewer, Point startPoint) {
 		GraphElementAccessor<V, E> pickSupport = viewer.getPickSupport();
-		PickedState<V> pickedVertexState = viewer.getPickedVertexState();
+		SelectedState<V> pickedVertexState = viewer.getSelectedVertexState();
 
 		if (pickSupport == null || pickedVertexState == null) {
 			return null;
 		}
 
-		Layout<V, E> layoutModel = viewer.getGraphLayout();
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
 
 		double x = startPoint.getX();
 		double y = startPoint.getY();
@@ -133,7 +136,7 @@ public class GraphViewerUtils {
 			V vertex) {
 
 		RenderContext<V, E> renderContext = viewer.getRenderContext();
-		Shape vertexGraphSpaceShape = renderContext.getVertexShapeTransformer().apply(vertex);
+		Shape vertexGraphSpaceShape = renderContext.getVertexShapeFunction().apply(vertex);
 		Rectangle vertexBounds = vertexGraphSpaceShape.getBounds();
 
 		// translate the location of the vertex
@@ -150,7 +153,7 @@ public class GraphViewerUtils {
 			V vertex) {
 
 		RenderContext<V, E> renderContext = viewer.getRenderContext();
-		Shape vertexGraphSpaceShape = renderContext.getVertexShapeTransformer().apply(vertex);
+		Shape vertexGraphSpaceShape = renderContext.getVertexShapeFunction().apply(vertex);
 		Rectangle vertexBounds = vertexGraphSpaceShape.getBounds();
 
 		// translate the location of the vertex
@@ -163,7 +166,7 @@ public class GraphViewerUtils {
 			V vertex) {
 
 		RenderContext<V, E> renderContext = viewer.getRenderContext();
-		Shape vertexGraphSpaceShape = renderContext.getVertexShapeTransformer().apply(vertex);
+		Shape vertexGraphSpaceShape = renderContext.getVertexShapeFunction().apply(vertex);
 		Rectangle vertexGraphSpaceBounds = vertexGraphSpaceShape.getBounds();
 
 		// translate the rectangle
@@ -196,7 +199,7 @@ public class GraphViewerUtils {
 		}
 
 		Point screenClickPoint = mouseEvent.getPoint();
-		Layout<V, E> layoutModel = viewer.getGraphLayout();
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
 
 		double x = screenClickPoint.getX();
 		double y = screenClickPoint.getY();
@@ -220,7 +223,7 @@ public class GraphViewerUtils {
 			translatePointFromLayoutSpaceToGraphSpace(vertexCenterInLayoutSpace, viewer);
 
 		RenderContext<V, E> renderContext = viewer.getRenderContext();
-		Shape shape = renderContext.getVertexShapeTransformer().apply(vertex);
+		Shape shape = renderContext.getVertexShapeFunction().apply(vertex);
 		Rectangle shapeBounds = shape.getBounds();
 		Point vertexUpperLeftPointRelativeToVertexCenter = shapeBounds.getLocation();
 
@@ -246,6 +249,17 @@ public class GraphViewerUtils {
 		Point2D transformedPoint = transformer.transform(pointInLayoutSpace);
 		return new Point((int) transformedPoint.getX(), (int) transformedPoint.getY());
 	}
+
+	public static <V, E> Point translatePointFromLayoutSpaceToViewSpace(double pointInLayoutSpaceX, double pointInLayoutSpaceY,
+																		VisualizationServer<V, E> viewer) {
+
+		RenderContext<V, E> renderContext = viewer.getRenderContext();
+		MultiLayerTransformer transformer = renderContext.getMultiLayerTransformer();
+
+		Point2D transformedPoint = transformer.transform(pointInLayoutSpaceX, pointInLayoutSpaceY);
+		return new Point((int) transformedPoint.getX(), (int) transformedPoint.getY());
+	}
+
 
 	public static <V, E> Point translatePointFromViewSpaceToGraphSpace(Point2D pointInViewSpace,
 			VisualizationServer<V, E> viewer) {
@@ -318,9 +332,9 @@ public class GraphViewerUtils {
 	private static <V, E> Point getVertexCenterPointInLayoutSpace(VisualizationServer<V, E> viewer,
 			V vertex) {
 
-		Layout<V, E> layout = viewer.getGraphLayout();
-		Point2D vertexCenter = layout.apply(vertex);
-		return new Point((int) vertexCenter.getX(), (int) vertexCenter.getY());
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
+		org.jungrapht.visualization.layout.model.Point vertexCenter = layoutModel.apply(vertex);
+		return new Point((int) vertexCenter.x, (int) vertexCenter.y);
 	}
 
 	// Note: vertex relative means that the value is from inside the vertex, or the vertex's
@@ -359,8 +373,8 @@ public class GraphViewerUtils {
 			return null;
 		}
 
-		Layout<V, E> layout = viewer.getGraphLayout();
-		return pickSupport.getVertex(layout, point.getX(), point.getY());
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
+		return pickSupport.getVertex(layoutModel, point.getX(), point.getY());
 	}
 
 	/** 
@@ -398,8 +412,8 @@ public class GraphViewerUtils {
 			return null;
 		}
 
-		Layout<V, E> layout = viewer.getGraphLayout();
-		return pickSupport.getEdge(layout, point.getX(), point.getY());
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
+		return pickSupport.getEdge(layoutModel, point.getX(), point.getY());
 	}
 
 	public static Double getScaleRatioToFitInDimension(Dimension currentSize,
@@ -439,7 +453,7 @@ public class GraphViewerUtils {
 		ShapePickSupport<V, E> shapePickSupport = (ShapePickSupport<V, E>) pickSupport;
 
 		Double graphScale = getGraphScale(viewer);
-		float adjustedPickSize = (float) (UNSCALED_EDGE_PICK_SIZE / graphScale);
+		int adjustedPickSize = (int) (UNSCALED_EDGE_PICK_SIZE / graphScale);
 		shapePickSupport.setPickSize(adjustedPickSize);
 	}
 
@@ -666,10 +680,10 @@ public class GraphViewerUtils {
 
 	public static <V, E> Shape getEdgeShapeInGraphSpace(VisualizationServer<V, E> viewer, E e) {
 
-		Layout<V, E> layout = viewer.getGraphLayout();
-		Pair<V> pair = layout.getGraph().getEndpoints(e);
-		V startVertex = pair.getFirst();
-		V endVertex = pair.getSecond();
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
+		Graph<V, E> graph = layoutModel.getGraph();
+		V startVertex = graph.getEdgeSource(e);
+		V endVertex = graph.getEdgeTarget(e);
 
 		Point2D startVertexCenter = getVertexCenterPointInGraphSpace(viewer, startVertex);
 		if (startVertexCenter == null) {
@@ -694,14 +708,14 @@ public class GraphViewerUtils {
 			// code in the utils class.  We do this so that our hit detection matches our rendering.
 			//
 			Function<? super V, Shape> vertexShapeTransformer =
-				renderContext.getVertexShapeTransformer();
+				renderContext.getVertexShapeFunction();
 			Shape vertexShape = getVertexShapeForEdge(endVertex, vertexShapeTransformer);
 			return createHollowEgdeLoopInGraphSpace(vertexShape, startX, startY);
 		}
 
 		// translate the edge from 0,0 to the starting vertex point
 		AffineTransform xform = AffineTransform.getTranslateInstance(startX, startY);
-		Shape edgeShape = renderContext.getEdgeShapeTransformer().apply(e);
+		Shape edgeShape = renderContext.getEdgeShapeFunction().apply(graph, e);
 
 		double deltaX = endX - startX;
 		double deltaY = endY - startY;
@@ -736,19 +750,19 @@ public class GraphViewerUtils {
 
 	private static <V, E> Point2D getVertexCenterPointInGraphSpace(VisualizationServer<V, E> viewer,
 			V vertex) {
-		Layout<V, E> layout = viewer.getGraphLayout();
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
 		RenderContext<V, E> renderContext = viewer.getRenderContext();
 		MultiLayerTransformer transformer = renderContext.getMultiLayerTransformer();
-		Point2D vertex1CenterInLayoutSpace = layout.apply(vertex);
-		return transformer.transform(Layer.LAYOUT, vertex1CenterInLayoutSpace);
+		org.jungrapht.visualization.layout.model.Point vertex1CenterInLayoutSpace = layoutModel.apply(vertex);
+		return transformer.transform(Layer.LAYOUT, vertex1CenterInLayoutSpace.x, vertex1CenterInLayoutSpace.y);
 	}
 
 	public static <V, E> Point2D getVertexCenterPointInViewSpace(VisualizationServer<V, E> viewer,
 			V v) {
-		Layout<V, E> layout = viewer.getGraphLayout();
-		Point2D centerInLayoutSpace = layout.apply(v);
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
+		org.jungrapht.visualization.layout.model.Point centerInLayoutSpace = layoutModel.apply(v);
 		Point viewSpacePoint =
-			translatePointFromLayoutSpaceToViewSpace(centerInLayoutSpace, viewer);
+			translatePointFromLayoutSpaceToViewSpace(centerInLayoutSpace.x, centerInLayoutSpace.y, viewer);
 		return viewSpacePoint;
 	}
 
@@ -837,19 +851,19 @@ public class GraphViewerUtils {
 		Rectangle getTotalGraphSizeInLayoutSpace(VisualizationServer<V, E> viewer) {
 	//@formatter:on
 
-		Layout<V, E> layout = viewer.getGraphLayout();
-		Graph<V, E> theGraph = layout.getGraph();
-		Collection<V> vertices = theGraph.getVertices();
-		Collection<E> edges = theGraph.getEdges();
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
+		Graph<V, E> theGraph = layoutModel.getGraph();
+		Collection<V> vertices = theGraph.vertexSet();
+		Collection<E> edges = theGraph.edgeSet();
 
 		Function<V, Rectangle> vertexToBounds = createVertexToBoundsTransformer(viewer);
 
-		if (!layoutUsesEdgeArticulations(layout)) {
+		if (!layoutUsesEdgeArticulations(layoutModel)) {
 			Rectangle bounds = getBoundsForVerticesInLayoutSpace(vertices, vertexToBounds);
 			return bounds;
 		}
 
-		Function<E, List<Point2D>> edgeToArticulations = e -> e.getArticulationPoints();
+		Function<E, List<org.jungrapht.visualization.layout.model.Point>> edgeToArticulations = e -> e.getArticulationPoints();
 		return getTotalGraphSizeInLayoutSpace(vertices, edges, vertexToBounds, edgeToArticulations);
 	}
 
@@ -859,16 +873,16 @@ public class GraphViewerUtils {
 	//@formatter:on
 
 		RenderContext<V, E> context = viewer.getRenderContext();
-		Function<? super V, Shape> shapeTransformer = context.getVertexShapeTransformer();
-		Layout<V, E> layout = viewer.getGraphLayout();
+		Function<? super V, Shape> shapeTransformer = context.getVertexShapeFunction();
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
 		Function<V, Rectangle> transformer = v -> {
 
 			Shape s = shapeTransformer.apply(v);
 			Rectangle bounds = s.getBounds();
-			Point2D p = layout.apply(v);
+			org.jungrapht.visualization.layout.model.Point p = layoutModel.apply(v);
 
 			// Note: we use the raw x/y of the layout; the view code will center the vertices
-			bounds.setLocation(new Point((int) p.getX(), (int) p.getY()));
+			bounds.setLocation(new Point((int) p.x, (int) p.y));
 			return bounds;
 		};
 		return transformer;
@@ -880,7 +894,7 @@ public class GraphViewerUtils {
 												Collection<V> vertices,
 												Collection<E> edges,
 												Function<V, Rectangle> vertexToBounds,
-											    Function<E, List<Point2D>> edgeToArticulations) {
+											    Function<E, List<org.jungrapht.visualization.layout.model.Point>> edgeToArticulations) {
 	//@formatter:on
 
 		Rectangle vertexBounds = getBoundsForVerticesInLayoutSpace(vertices, vertexToBounds);
@@ -892,10 +906,10 @@ public class GraphViewerUtils {
 
 		for (E e : edges) {
 
-			List<Point2D> articulationPoints = edgeToArticulations.apply(e);
-			for (Point2D point : articulationPoints) {
-				double vertexX = point.getX();
-				double vertexY = point.getY();
+			List<org.jungrapht.visualization.layout.model.Point> articulationPoints = edgeToArticulations.apply(e);
+			for (org.jungrapht.visualization.layout.model.Point point : articulationPoints) {
+				double vertexX = point.x;
+				double vertexY = point.y;
 
 				double componentMinX = vertexX - EXTRA_LAYOUT_COLUMN_SPACING / 2;
 				double componentMinY = vertexY - EXTRA_LAYOUT_ROW_SPACING / 2;
@@ -924,16 +938,16 @@ public class GraphViewerUtils {
 	public static <V, E> Rectangle getBoundsForVerticesInLayoutSpace(
 			VisualizationServer<V, E> viewer, Collection<V> vertices) {
 
-		Layout<V, E> layout = viewer.getGraphLayout();
+		LayoutModel<V> layoutModel = viewer.getVisualizationModel().getLayoutModel();
 		RenderContext<V, E> renderContext = viewer.getRenderContext();
-		Function<? super V, Shape> shapeTransformer = renderContext.getVertexShapeTransformer();
+		Function<? super V, Shape> shapeTransformer = renderContext.getVertexShapeFunction();
 
 		Function<V, Rectangle> transformer = v -> {
 
 			Shape shape = shapeTransformer.apply(v);
 			Rectangle bounds = shape.getBounds();
-			Point2D point = layout.apply(v);
-			bounds.setLocation(new Point((int) point.getX(), (int) point.getY()));
+			org.jungrapht.visualization.layout.model.Point point = layoutModel.apply(v);
+			bounds.setLocation(new Point((int) point.x, (int) point.y));
 			return bounds;
 		};
 		return getBoundsForVerticesInLayoutSpace(vertices, transformer);
@@ -994,7 +1008,7 @@ public class GraphViewerUtils {
 
 	//@formatter:off
 	public static <V extends VisualVertex, E extends VisualEdge<V>> 
-		boolean layoutUsesEdgeArticulations(Layout<V, E> graphLayout) {
+		boolean layoutUsesEdgeArticulations(LayoutModel<V> graphLayout) {
 	//@formatter:on
 
 		VisualGraphLayout<?, ?> layout = getVisualGraphLayout(graphLayout);
@@ -1006,13 +1020,13 @@ public class GraphViewerUtils {
 
 	//@formatter:off
 	public static <V extends VisualVertex, E extends VisualEdge<V>> 
-		VisualGraphLayout<V, E> getVisualGraphLayout(Layout<V, E> graphLayout) {
+		VisualGraphLayout<V, E> getVisualGraphLayout(LayoutModel<V> graphLayout) {
 	//@formatter:on
 
-		Layout<V, E> layout = graphLayout;
-		while (layout instanceof LayoutDecorator) {
-			layout = ((LayoutDecorator<V, E>) layout).getDelegate();
-		}
+		LayoutModel<V> layout = graphLayout;
+//		while (layout instanceof LayoutDecorator) {
+//			layout = ((LayoutDecorator<V, E>) layout).getDelegate();
+//		}
 
 		if (!(layout instanceof VisualGraphLayout)) {
 			return null;
@@ -1049,7 +1063,7 @@ public class GraphViewerUtils {
 	//@formatter:on
 
 		List<V> result = new LinkedList<>();
-		Collection<E> edges = graph.getEdges();
+		Collection<E> edges = graph.edgeSet();
 		LinkedList<E> filteredEdges = new LinkedList<>();
 		if (useHover) {
 			for (E edge : edges) {

@@ -17,10 +17,9 @@ package ghidra.graph.viewer.vertex;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.util.function.Function;
 
 import javax.swing.JComponent;
-
-import com.google.common.base.Function;
 
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.VisualVertex;

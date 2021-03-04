@@ -19,14 +19,18 @@ import java.awt.Color;
 import java.awt.Point;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 import java.util.Objects;
 
 import docking.DockingUtils;
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.control.AbstractGraphMousePlugin;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.renderer.*;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.control.AbstractGraphMousePlugin;
+import org.jungrapht.visualization.transform.MutableTransformer;
+
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 /**
  * A simple plugin that allows clients to be notified of mouse events before any of the other
@@ -61,7 +65,7 @@ public class VisualGraphMouseTrackingGraphMousePlugin<V extends VisualVertex,
 	public boolean checkModifiers(MouseEvent e) {
 		int eventModifiers = e.getModifiersEx();
 		eventModifiers = turnOffControlKey(eventModifiers);
-		return ((eventModifiers & getModifiers()) == eventModifiers);
+		return ((eventModifiers & getModifiersEx()) == eventModifiers);
 	}
 
 	private int turnOffControlKey(int eventModifiers) {

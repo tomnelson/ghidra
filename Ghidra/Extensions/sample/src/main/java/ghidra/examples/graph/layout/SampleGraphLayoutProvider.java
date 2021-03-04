@@ -20,12 +20,13 @@ import java.util.Collection;
 
 import javax.swing.Icon;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import ghidra.examples.graph.*;
 import ghidra.graph.viewer.layout.AbstractLayoutProvider;
 import ghidra.graph.viewer.layout.VisualGraphLayout;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
 import resources.ResourceManager;
 
 /**
@@ -40,11 +41,12 @@ public abstract class SampleGraphLayoutProvider
 	public abstract VisualGraphLayout<SampleVertex, SampleEdge> getLayout(SampleGraph g,
 			TaskMonitor monitor) throws CancelledException;
 
-	protected void initVertexLocations(SampleGraph g, Layout<SampleVertex, SampleEdge> layout) {
+	protected void initVertexLocations(SampleGraph g, LayoutModel<SampleVertex> layoutModel) {
 		Collection<SampleVertex> vertices = g.getVertices();
 		for (SampleVertex v : vertices) {
-			Point2D p = layout.apply(v);
-			v.setLocation(p);
+			Point p = layoutModel.apply(v);
+//			v.setLocation(p);
+			layoutModel.set(v, p);
 		}
 	}
 

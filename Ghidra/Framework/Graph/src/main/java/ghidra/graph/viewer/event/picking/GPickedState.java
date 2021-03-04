@@ -16,34 +16,36 @@
 package ghidra.graph.viewer.event.picking;
 
 import java.awt.event.ItemListener;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-import edu.uci.ics.jung.visualization.picking.MultiPickedState;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 import ghidra.graph.viewer.event.picking.PickListener.EventSource;
+import org.jungrapht.visualization.selection.MultiMutableSelectedState;
+import org.jungrapht.visualization.selection.MutableSelectedState;
+import org.jungrapht.visualization.selection.SelectedState;
 
 /**
- * This picked-state is a wrapper for {@link PickedState} that allows us to broadcast events
+ * This picked-state is a wrapper for {@link SelectedState} that allows us to broadcast events
  * with the trigger of that event.
  *
  * @param <V> the vertex type
  */
-public class GPickedState<V> implements PickedState<V> {
+public class GPickedState<V> implements MutableSelectedState<V> {
 
 	private Set<PickListener<V>> listeners = new CopyOnWriteArraySet<>();
 
-	private final MultiPickedState<V> pickedStateDelegate;
+	private final MultiMutableSelectedState<V> pickedStateDelegate;
 	private EventSource pendingEventSource = null;
 
-	public GPickedState(MultiPickedState<V> pickedState) {
+	public GPickedState(MultiMutableSelectedState<V> pickedState) {
 		this.pickedStateDelegate = pickedState;
 		pickedState.addItemListener(e -> {
 			EventSource source =
 				(pendingEventSource != null) ? pendingEventSource : EventSource.INTERNAL;
 			@SuppressWarnings("rawtypes")
-			MultiPickedState state = (MultiPickedState) e.getSource();
+			MultiMutableSelectedState state = (MultiMutableSelectedState) e.getSource();
 			Object[] selectedObjects = state.getSelectedObjects();
 			notifyVerticesPicked(selectedObjects, source);
 		});
@@ -77,7 +79,7 @@ public class GPickedState<V> implements PickedState<V> {
 	/**
 	 * Picks the given vertex, but signals that the pick is really just to make sure that the 
 	 * vertex is picked in order to match the graph's notion of the current location.  To pick a 
-	 * vertex and signal that the location has changed, call {@link #pick(Object, boolean)}. 
+	 * vertex and signal that the location has changed, call {@link #select(Object, boolean)}.
 	 * Calling this method is the same as calling 
 	 * <pre>pickToSync(vertex, false);</pre>
 	 * 
@@ -90,7 +92,7 @@ public class GPickedState<V> implements PickedState<V> {
 	/**
 	 * Picks the given vertex, but signals that the pick is really just to make sure that the 
 	 * vertex is picked in order to match the graph's notion of the current location.  To pick a 
-	 * vertex and signal that the location has changed, call {@link #pick(Object, boolean)}
+	 * vertex and signal that the location has changed, call {@link #select(Object, boolean)}
 	 * 
 	 * @param vertex the vertex to pick
 	 * @param addToSelection true signals that the given vertex should be picked, but not to 
@@ -102,7 +104,7 @@ public class GPickedState<V> implements PickedState<V> {
 		if (!addToSelection) {
 			pickedStateDelegate.clear();
 		}
-		pickedStateDelegate.pick(vertex, true);
+		pickedStateDelegate.select(vertex, true);
 		pendingEventSource = null;
 	}
 
@@ -114,17 +116,52 @@ public class GPickedState<V> implements PickedState<V> {
 	public void pickToActivate(V vertex) {
 		pendingEventSource = EventSource.INTERNAL;
 		pickedStateDelegate.clear();
-		pickedStateDelegate.pick(vertex, true);
+		pickedStateDelegate.select(vertex, true);
 		pendingEventSource = null;
+	}
+
+	@Override
+	public boolean select(V element) {
+		return pickedStateDelegate.select(element);
 	}
 
 	// standard pick from toolkit
 	@Override
-	public boolean pick(V vertex, boolean b) {
+	public boolean select(V vertex, boolean b) {
 		pendingEventSource = EventSource.INTERNAL;
-		boolean result = pickedStateDelegate.pick(vertex, b);
+		boolean result = pickedStateDelegate.select(vertex, b);
 		pendingEventSource = null;
 		return result;
+	}
+
+	@Override
+	public boolean deselect(V element) {
+		return pickedStateDelegate.deselect(element);
+	}
+
+	@Override
+	public boolean deselect(V element, boolean fireEvents) {
+		return pickedStateDelegate.deselect(element, fireEvents);
+	}
+
+	@Override
+	public boolean select(Collection<V> elements) {
+		return pickedStateDelegate.select(elements);
+	}
+
+	@Override
+	public boolean select(Collection<V> elements, boolean fireEvents) {
+		return pickedStateDelegate.select(elements, fireEvents);
+	}
+
+	@Override
+	public boolean deselect(Collection<V> elements) {
+		return pickedStateDelegate.deselect(elements);
+	}
+
+	@Override
+	public boolean deselect(Collection<V> elements, boolean fireEvents) {
+		return pickedStateDelegate.deselect(elements, fireEvents);
 	}
 
 	@Override
@@ -135,14 +172,24 @@ public class GPickedState<V> implements PickedState<V> {
 	}
 
 	@Override
-	public Set<V> getPicked() {
-		return pickedStateDelegate.getPicked();
+	public void clear(boolean fireEvents) {
+		pickedStateDelegate.clear();
 	}
 
 	@Override
-	public boolean isPicked(V vertex) {
-		return pickedStateDelegate.isPicked(vertex);
+	public boolean isSelected(V v) {
+		return pickedStateDelegate.isSelected(v);
 	}
+
+	@Override
+	public Set<V> getSelected() {
+		return pickedStateDelegate.getSelected();
+	}
+
+//	@Override
+//	public boolean isPicked(V vertex) {
+//		return pickedStateDelegate.isSelected(vertex);
+//	}
 
 	@Override
 	public Object[] getSelectedObjects() {

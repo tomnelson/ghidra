@@ -15,17 +15,16 @@
  */
 package ghidra.app.plugin.core.functiongraph.graph;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Shape;
 import java.util.*;
 import java.util.Map.Entry;
 
 import org.jdom.Element;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.RenderContext;
-import edu.uci.ics.jung.visualization.picking.PickedState;
-import edu.uci.ics.jung.visualization.renderers.Renderer;
-import edu.uci.ics.jung.visualization.util.Caching;
 import ghidra.app.plugin.core.functiongraph.graph.jung.renderer.FGEdgePaintTransformer;
 import ghidra.app.plugin.core.functiongraph.graph.jung.renderer.FGVertexRenderer;
 import ghidra.app.plugin.core.functiongraph.graph.jung.transformer.FGVertexPickableBackgroundPaintTransformer;
@@ -41,6 +40,12 @@ import ghidra.program.model.listing.Function;
 import ghidra.program.util.ProgramLocation;
 import ghidra.util.SystemUtilities;
 import ghidra.util.UndefinedFunction;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.util.Caching;
+import org.jungrapht.visualization.renderers.Renderer;
+import org.jungrapht.visualization.selection.SelectedState;
+import org.jungrapht.visualization.util.PointUtils;
 
 public class FGComponent extends GraphComponent<FGVertex, FGEdge, FunctionGraph> {
 
@@ -135,7 +140,7 @@ public class FGComponent extends GraphComponent<FGVertex, FGEdge, FunctionGraph>
 	}
 
 	private FGLayout getFunctionGraphLayout() {
-		Layout<FGVertex, FGEdge> graphLayout = primaryViewer.getVisualGraphLayout();
+		LayoutModel<FGVertex> graphLayout = primaryViewer.getVisualGraphLayout();
 		FGLayout layout = (FGLayout) graphLayout;
 		return layout;
 	}
@@ -146,7 +151,7 @@ public class FGComponent extends GraphComponent<FGVertex, FGEdge, FunctionGraph>
 		Set<Entry<FGVertex, Point>> entrySet = vertexLocations.entrySet();
 		FGLayout layout = getFunctionGraphLayout();
 		for (Entry<FGVertex, Point> entry : entrySet) {
-			layout.setLocation(entry.getKey(), entry.getValue(), ChangeType.RESTORE);
+			layout.setLocation(entry.getKey(), PointUtils.convert(entry.getValue()), ChangeType.RESTORE);
 		}
 
 		// hack to make sure that location algorithms use the correct position values
@@ -193,21 +198,21 @@ public class FGComponent extends GraphComponent<FGVertex, FGEdge, FunctionGraph>
 		RenderContext<FGVertex, FGEdge> renderContext = viewer.getRenderContext();
 		FGEdgePaintTransformer edgePaintTransformer =
 			new FGEdgePaintTransformer(getFucntionGraphOptions());
-		renderContext.setEdgeDrawPaintTransformer(edgePaintTransformer);
-		renderContext.setArrowDrawPaintTransformer(edgePaintTransformer);
-		renderContext.setArrowFillPaintTransformer(edgePaintTransformer);
+		renderContext.setEdgeDrawPaintFunction(edgePaintTransformer);
+		renderContext.setArrowDrawPaintFunction(edgePaintTransformer);
+		renderContext.setArrowFillPaintFunction(edgePaintTransformer);
 
 		Renderer<FGVertex, FGEdge> renderer = viewer.getRenderer();
 		renderer.setVertexRenderer(new FGVertexRenderer());
 
 		// for background colors when we are zoomed to far to render the listing
-		PickedState<FGVertex> pickedVertexState = viewer.getPickedVertexState();
-		renderContext.setVertexFillPaintTransformer(new FGVertexPickableBackgroundPaintTransformer(
+		SelectedState<FGVertex> pickedVertexState = viewer.getSelectedVertexState();
+		renderContext.setVertexFillPaintFunction(new FGVertexPickableBackgroundPaintTransformer(
 			pickedVertexState, Color.YELLOW, START_COLOR, END_COLOR));
 
 		// edge label rendering
-		com.google.common.base.Function<FGEdge, String> edgeLabelTransformer = e -> e.getLabel();
-		renderContext.setEdgeLabelTransformer(edgeLabelTransformer);
+		java.util.function.Function<FGEdge, String> edgeLabelTransformer = e -> e.getLabel();
+		renderContext.setEdgeLabelFunction(edgeLabelTransformer);
 
 		// note: this label renderer is the stamp for the label; we use another edge label 
 		//       renderer inside of the VisualGraphRenderer
@@ -240,12 +245,12 @@ public class FGComponent extends GraphComponent<FGVertex, FGEdge, FunctionGraph>
 
 		FGEdgePaintTransformer edgePaintTransformer =
 			new FGEdgePaintTransformer(getFucntionGraphOptions());
-		renderContext.setEdgeDrawPaintTransformer(edgePaintTransformer);
-		renderContext.setArrowDrawPaintTransformer(edgePaintTransformer);
-		renderContext.setArrowFillPaintTransformer(edgePaintTransformer);
+		renderContext.setEdgeDrawPaintFunction(edgePaintTransformer);
+		renderContext.setArrowDrawPaintFunction(edgePaintTransformer);
+		renderContext.setArrowFillPaintFunction(edgePaintTransformer);
 
-		PickedState<FGVertex> pickedVertexState = viewer.getPickedVertexState();
-		renderContext.setVertexFillPaintTransformer(new FGVertexPickableBackgroundPaintTransformer(
+		SelectedState<FGVertex> pickedVertexState = viewer.getSelectedVertexState();
+		renderContext.setVertexFillPaintFunction(new FGVertexPickableBackgroundPaintTransformer(
 			pickedVertexState, Color.YELLOW, START_COLOR, END_COLOR));
 
 		return viewer;
@@ -288,8 +293,8 @@ public class FGComponent extends GraphComponent<FGVertex, FGEdge, FunctionGraph>
 
 		// just make the entire vertex visible
 		RenderContext<FGVertex, FGEdge> renderContext = primaryViewer.getRenderContext();
-		com.google.common.base.Function<? super FGVertex, Shape> transformer =
-			renderContext.getVertexShapeTransformer();
+		java.util.function.Function<? super FGVertex, Shape> transformer =
+			renderContext.getVertexShapeFunction();
 		Shape shape = transformer.apply(vertex);
 		Rectangle bounds = shape.getBounds();
 		viewUpdater.ensureVertexAreaVisible(vertex, bounds, null);

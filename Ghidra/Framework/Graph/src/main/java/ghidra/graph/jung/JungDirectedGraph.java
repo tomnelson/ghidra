@@ -15,16 +15,23 @@
  */
 package ghidra.graph.jung;
 
-import edu.uci.ics.jung.graph.DirectedSparseGraph;
 import ghidra.graph.GDirectedGraph;
 import ghidra.graph.GEdge;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DirectedPseudograph;
 
-public class JungDirectedGraph<V, E extends GEdge<V>> extends DirectedSparseGraph<V, E>
+import java.util.Collection;
+
+public class JungDirectedGraph<V, E extends GEdge<V>> extends DirectedPseudograph<V, E>
 		implements GDirectedGraph<V, E> {
+
+	public JungDirectedGraph() {
+		super(null, null, false);
+	}
 
 	@Override
 	public void addEdge(E e) {
-		super.addEdge(e, e.getStart(), e.getEnd());
+		super.addEdge(e.getStart(), e.getEnd(), e);
 	}
 
 	@Override
@@ -35,6 +42,21 @@ public class JungDirectedGraph<V, E extends GEdge<V>> extends DirectedSparseGrap
 	@Override
 	public void removeEdges(Iterable<E> toRemove) {
 		toRemove.forEach(e -> super.removeEdge(e));
+	}
+
+	@Override
+	public E findEdge(V start, V end) {
+		return getEdge(start, end);
+	}
+
+	@Override
+	public Collection<V> getVertices() {
+		return vertexSet();
+	}
+
+	@Override
+	public Collection<E> getEdges() {
+		return edgeSet();
 	}
 
 	@Override
@@ -52,11 +74,11 @@ public class JungDirectedGraph<V, E extends GEdge<V>> extends DirectedSparseGrap
 	public GDirectedGraph<V, E> copy() {
 		JungDirectedGraph<V, E> newGraph = new JungDirectedGraph<>();
 
-		for (V v : vertices.keySet()) {
+		for (V v : vertexSet()) {
 			newGraph.addVertex(v);
 		}
 
-		for (E e : edges.keySet()) {
+		for (E e : edgeSet()) {
 			newGraph.addEdge(e);
 		}
 
@@ -66,5 +88,25 @@ public class JungDirectedGraph<V, E extends GEdge<V>> extends DirectedSparseGrap
 	@Override
 	public boolean isEmpty() {
 		return getVertexCount() == 0;
+	}
+
+	@Override
+	public int getVertexCount() {
+		return vertexSet().size();
+	}
+
+	@Override
+	public int getEdgeCount() {
+		return edgeSet().size();
+	}
+
+	@Override
+	public Collection<E> getInEdges(V v) {
+		return incomingEdgesOf(v);
+	}
+
+	@Override
+	public Collection<E> getOutEdges(V v) {
+		return outgoingEdgesOf(v);
 	}
 }

@@ -15,16 +15,13 @@
  */
 package ghidra.graph.viewer.layout;
 
-import java.awt.geom.Point2D;
 import java.util.*;
 
-import org.apache.commons.collections4.TransformerUtils;
-import org.apache.commons.collections4.map.TransformedMap;
-
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * Simple container class to hold vertex locations (points) and edge articulation locations 
@@ -33,21 +30,21 @@ import ghidra.graph.viewer.VisualVertex;
  */
 public class LayoutPositions<V extends VisualVertex, E extends VisualEdge<V>> {
 
-	private Map<V, Point2D> vertexLocations;
-	private Map<E, List<Point2D>> edgeArticulations;
+	private Map<V, Point> vertexLocations;
+	private Map<E, List<Point>> edgeArticulations;
 
 	//@formatter:off
 	public static <V extends VisualVertex, E extends VisualEdge<V>> 
-		LayoutPositions<V, E> getCurrentPositions(VisualGraph<V, E> graph, Layout<V, E> graphLayout) {
+		LayoutPositions<V, E> getCurrentPositions(VisualGraph<V, E> graph, LayoutModel<V> graphLayout) {
 	//@formatter:on
 
-		Map<V, Point2D> locations = new HashMap<>();
+		Map<V, Point> locations = new HashMap<>();
 		Collection<V> vertices = graph.getVertices();
 		for (V vertex : vertices) {
 			locations.put(vertex, graphLayout.apply(vertex));
 		}
 
-		Map<E, List<Point2D>> articulations = new HashMap<>();
+		Map<E, List<Point>> articulations = new HashMap<>();
 		Collection<E> edges = graph.getEdges();
 		for (E edge : edges) {
 			articulations.put(edge, edge.getArticulationPoints());
@@ -61,7 +58,7 @@ public class LayoutPositions<V extends VisualVertex, E extends VisualEdge<V>> {
 	}
 
 	public static <V extends VisualVertex, E extends VisualEdge<V>> LayoutPositions<V, E> createNewPositions(
-			Map<V, Point2D> vertexLocations, Map<E, List<Point2D>> edgeArticulations) {
+			Map<V, Point> vertexLocations, Map<E, List<Point>> edgeArticulations) {
 		return new LayoutPositions<>(vertexLocations, edgeArticulations);
 	}
 
@@ -71,28 +68,30 @@ public class LayoutPositions<V extends VisualVertex, E extends VisualEdge<V>> {
 		edgeArticulations = new HashMap<>();
 	}
 
-	private LayoutPositions(Map<V, Point2D> vertexLocations,
-			Map<E, List<Point2D>> edgeArticulations) {
+	private LayoutPositions(Map<V, Point> vertexLocations,
+			Map<E, List<Point>> edgeArticulations) {
 		setVertexLocations(vertexLocations);
 		setEdgeArticulations(edgeArticulations);
 	}
 
-	private void setVertexLocations(Map<V, Point2D> newVertexLocations) {
-		this.vertexLocations = TransformedMap.transformedMap(newVertexLocations,
-			TransformerUtils.nopTransformer(), TransformerUtils.cloneTransformer());
+	private void setVertexLocations(Map<V, Point> newVertexLocations) {
+		this.vertexLocations = newVertexLocations;
+//		.transformedMap(newVertexLocations,
+//			TransformerUtils.nopTransformer(), TransformerUtils.cloneTransformer());
 	}
 
-	private void setEdgeArticulations(Map<E, List<Point2D>> newEdgeArticulations) {
-		this.edgeArticulations = TransformedMap.transformedMap(newEdgeArticulations,
-			TransformerUtils.nopTransformer(), TransformerUtils.cloneTransformer());
+	private void setEdgeArticulations(Map<E, List<Point>> newEdgeArticulations) {
+		this.edgeArticulations = newEdgeArticulations;
+//				TransformedMap.transformedMap(newEdgeArticulations,
+//			TransformerUtils.nopTransformer(), TransformerUtils.cloneTransformer());
 	}
 
-	public Map<V, Point2D> getVertexLocations() {
+	public Map<V, Point> getVertexLocations() {
 		// Note: clients are allowed to modify this container!
 		return vertexLocations;
 	}
 
-	public Map<E, List<Point2D>> getEdgeArticulations() {
+	public Map<E, List<Point>> getEdgeArticulations() {
 		// Note: clients are allowed to modify this container!
 		return edgeArticulations;
 	}

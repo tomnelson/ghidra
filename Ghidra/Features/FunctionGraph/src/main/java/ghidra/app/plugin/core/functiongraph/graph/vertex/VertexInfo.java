@@ -20,8 +20,6 @@ import java.util.*;
 
 import org.jdom.Element;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.FunctionGraph;
 import ghidra.app.plugin.core.functiongraph.mvc.FGController;
@@ -29,6 +27,10 @@ import ghidra.app.plugin.core.functiongraph.mvc.FGData;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressFactory;
 import ghidra.program.model.listing.Program;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.util.PointUtils;
 
 /**
  * A class to record vertex information that can be used to find vertex instances in memory.  This
@@ -46,9 +48,9 @@ class VertexInfo {
 
 		vertexAddressInfo = new AddressInfo(vertex);
 
-		Layout<FGVertex, FGEdge> graphLayout = functionGraph.getLayout();
-		Point2D location = graphLayout.apply(vertex);
-		locationInfo = new PointInfo(location);
+		LayoutModel<FGVertex> layoutModel = functionGraph.getLayout();
+		Point location = layoutModel.apply(vertex);
+		locationInfo = new PointInfo(PointUtils.convert(location));
 	}
 
 	VertexInfo(Element element) {
@@ -102,7 +104,7 @@ class VertexInfo {
 		FGData functionGraphData = controller.getFunctionGraphData();
 		FunctionGraph functionGraph = functionGraphData.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGEdge> inEdges = graph.getInEdges(vertex);
+		Collection<FGEdge> inEdges = graph.incomingEdgesOf(vertex);
 		if (inEdges == null) {
 			return null;
 		}
@@ -117,7 +119,7 @@ class VertexInfo {
 		FGData functionGraphData = controller.getFunctionGraphData();
 		FunctionGraph functionGraph = functionGraphData.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGEdge> outEdges = graph.getOutEdges(vertex);
+		Collection<FGEdge> outEdges = graph.outgoingEdgesOf(vertex);
 		if (outEdges == null) {
 			return null;
 		}

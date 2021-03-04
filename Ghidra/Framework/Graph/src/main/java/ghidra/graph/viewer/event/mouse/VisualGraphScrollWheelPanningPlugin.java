@@ -19,14 +19,14 @@ import java.awt.Point;
 import java.awt.event.*;
 
 import docking.DockingUtils;
-import edu.uci.ics.jung.visualization.control.AbstractGraphMousePlugin;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.options.VisualGraphOptions;
+import org.jungrapht.visualization.control.AbstractGraphMousePlugin;
 
 //@formatter:off
 public class VisualGraphScrollWheelPanningPlugin<V extends VisualVertex, 
 												   E extends VisualEdge<V>>
-		extends AbstractGraphMousePlugin 
+		extends AbstractGraphMousePlugin
 		implements MouseWheelListener, VisualGraphMousePlugin<V, E> {
 //@formatter:on	
 

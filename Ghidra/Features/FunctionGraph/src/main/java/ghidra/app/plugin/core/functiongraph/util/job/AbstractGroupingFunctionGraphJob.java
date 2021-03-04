@@ -22,9 +22,6 @@ import java.awt.geom.Point2D;
 import java.util.*;
 import java.util.Map.Entry;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.picking.PickedState;
-import edu.uci.ics.jung.visualization.util.Caching;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.GroupedFunctionGraphVertex;
@@ -34,6 +31,11 @@ import ghidra.graph.viewer.layout.LayoutPositions;
 import ghidra.graph.viewer.options.RelayoutOption;
 import ghidra.program.model.address.Address;
 import ghidra.util.exception.AssertException;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.layout.util.Caching;
+import org.jungrapht.visualization.selection.MutableSelectedState;
+import org.jungrapht.visualization.selection.SelectedState;
 
 public abstract class AbstractGroupingFunctionGraphJob extends AbstractFunctionGraphTransitionJob {
 
@@ -98,10 +100,10 @@ public abstract class AbstractGroupingFunctionGraphJob extends AbstractFunctionG
 
 		removeOldVertexAndEdges();
 
-		PickedState<FGVertex> pickedVertexState = viewer.getPickedVertexState();
+		MutableSelectedState<FGVertex> pickedVertexState = viewer.getSelectedVertexState();
 		pickedVertexState.clear();
 		for (FGVertex vertex : getNewVertices()) {
-			pickedVertexState.pick(vertex, true);
+			pickedVertexState.select(vertex, true);
 		}
 
 		// little extra help for GC
@@ -120,8 +122,8 @@ public abstract class AbstractGroupingFunctionGraphJob extends AbstractFunctionG
 
 			positions = calculateDefaultLayoutLocations(ignore);
 
-			Map<FGVertex, Point2D> locations = positions.getVertexLocations();
-			Point2D groupDestinationPoint = maybeGetGroupDestinationPoint(locations);
+			Map<FGVertex, Point> locations = positions.getVertexLocations();
+			Point groupDestinationPoint = maybeGetGroupDestinationPoint(locations);
 			if (groupDestinationPoint != null) {
 				locations.put(groupVertex, groupDestinationPoint);
 			}
@@ -137,21 +139,21 @@ public abstract class AbstractGroupingFunctionGraphJob extends AbstractFunctionG
 			//                      using the layout, then we can change that here (TODO).
 			//
 			positions = getCurrentLayoutLocations();
-			Map<FGVertex, Point2D> currentLocations = positions.getVertexLocations();
+			Map<FGVertex, Point> currentLocations = positions.getVertexLocations();
 			positions = LayoutPositions.createNewPositions(currentLocations,
-				new HashMap<FGEdge, List<Point2D>>());
+				new HashMap<>());
 		}
 
 		// update the locations the preferred grouping locations (which may be empty)
-		Map<FGVertex, Point2D> layoutLocations = positions.getVertexLocations();
-		Point2D groupDestinationPoint = layoutLocations.get(groupVertex);
-		Map<FGVertex, Point2D> groupingDestinationLocations =
+		Map<FGVertex, Point> layoutLocations = positions.getVertexLocations();
+		Point groupDestinationPoint = layoutLocations.get(groupVertex);
+		Map<FGVertex, Point> groupingDestinationLocations =
 			getGroupingDestinationLocations(relayout, groupDestinationPoint);
 
-		Set<Entry<FGVertex, Point2D>> entrySet = groupingDestinationLocations.entrySet();
-		for (Entry<FGVertex, Point2D> entry : entrySet) {
+		Set<Entry<FGVertex, Point>> entrySet = groupingDestinationLocations.entrySet();
+		for (Entry<FGVertex, Point> entry : entrySet) {
 			FGVertex vertex = entry.getKey();
-			Point2D location = entry.getValue();
+			Point location = entry.getValue();
 			layoutLocations.put(vertex, location);
 		}
 
@@ -164,8 +166,8 @@ public abstract class AbstractGroupingFunctionGraphJob extends AbstractFunctionG
 	 * 
 	 * @return default destination locations for vertices
 	 */
-	protected abstract Map<FGVertex, Point2D> getGroupingDestinationLocations(boolean isRelayout,
-			Point2D groupVertexDestinationLocation);
+	protected abstract Map<FGVertex, Point> getGroupingDestinationLocations(boolean isRelayout,
+			Point groupVertexDestinationLocation);
 
 	protected Collection<FGVertex> getVerticesToMove() {
 		Collection<FGVertex> graphVertices = graph.getVertices();
@@ -227,7 +229,7 @@ public abstract class AbstractGroupingFunctionGraphJob extends AbstractFunctionG
 
 	@Override
 	protected void clearLocationCache() {
-		Layout<FGVertex, FGEdge> jungLayout = viewer.getGraphLayout();
+		LayoutModel<FGVertex> jungLayout = viewer.getVisualizationModel().getLayoutModel();
 		((Caching) jungLayout).clear();
 	}
 //==================================================================================================
@@ -239,7 +241,7 @@ public abstract class AbstractGroupingFunctionGraphJob extends AbstractFunctionG
 		graph.removeVertices(vertices);
 	}
 
-	private Point2D maybeGetGroupDestinationPoint(Map<FGVertex, Point2D> locations) {
+	private Point maybeGetGroupDestinationPoint(Map<FGVertex, Point> locations) {
 		Set<FGVertex> toBeRemoved = getVerticesToBeRemoved();
 		if (!toBeRemoved.contains(groupVertex)) {
 			return null; // we are not removing the group vertex (must be a grouping operation)

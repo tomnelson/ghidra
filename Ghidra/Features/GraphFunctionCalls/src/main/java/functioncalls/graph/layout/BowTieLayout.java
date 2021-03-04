@@ -25,6 +25,8 @@ import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.layout.*;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * A layout that will arrange vertices around a single vertex, with the incoming and outgoing
@@ -63,8 +65,8 @@ public class BowTieLayout extends AbstractVisualGraphLayout<FcgVertex, FcgEdge> 
 	}
 
 	@Override
-	protected Point2D getVertexLocation(FcgVertex v, Column col, Row<FcgVertex> row,
-			Rectangle bounds) {
+	protected Point getVertexLocation(FcgVertex v, Column col, Row<FcgVertex> row,
+									  Rectangle bounds) {
 		return getCenteredVertexLocation(v, col, row, bounds);
 	}
 
@@ -81,7 +83,11 @@ public class BowTieLayout extends AbstractVisualGraphLayout<FcgVertex, FcgEdge> 
 
 	@Override
 	public FunctionCallGraph getVisualGraph() {
-		return (FunctionCallGraph) getGraph();
+		Graph<FcgVertex, FcgEdge> graph = getGraph();
+		if (graph instanceof FunctionCallGraph) {
+			return (FunctionCallGraph)graph;
+		}
+		return null;
 	}
 
 	@Override

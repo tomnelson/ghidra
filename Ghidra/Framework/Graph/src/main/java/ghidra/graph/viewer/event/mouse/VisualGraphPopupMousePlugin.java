@@ -15,12 +15,12 @@
  */
 package ghidra.graph.viewer.event.mouse;
 
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.control.AbstractPopupGraphMousePlugin;
+
 import java.awt.event.MouseEvent;
 
 import javax.swing.JPopupMenu;
-
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.AbstractPopupGraphMousePlugin;
 
 public class VisualGraphPopupMousePlugin<V, E> extends AbstractPopupGraphMousePlugin {
 
@@ -34,7 +34,7 @@ public class VisualGraphPopupMousePlugin<V, E> extends AbstractPopupGraphMousePl
 //        PickedState<E> pickedEdgeState = viewer.getPickedEdgeState();
 //        
 		JPopupMenu popup = new JPopupMenu();
-		popup.show(viewer, e.getX(), e.getY());
+		popup.show(viewer.getComponent(), e.getX(), e.getY());
 	}
 
 	@SuppressWarnings("unchecked")

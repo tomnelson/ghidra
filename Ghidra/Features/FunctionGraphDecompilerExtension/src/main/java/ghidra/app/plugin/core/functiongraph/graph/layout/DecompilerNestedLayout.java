@@ -22,14 +22,12 @@ import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.collections4.map.LazyMap;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.visualization.renderers.Renderer.EdgeLabel;
 import ghidra.app.decompiler.DecompInterface;
 import ghidra.app.decompiler.DecompileOptions;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
@@ -49,6 +47,9 @@ import ghidra.util.Msg;
 import ghidra.util.exception.AssertException;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.renderers.Renderer;
 
 /**
  * A layout that uses the decompiler to show code nesting based upon conditional logic.
@@ -102,12 +103,12 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 	}
 
 	@Override
-	public Function<FGEdge, Shape> getEdgeShapeTransformer() {
+	public BiFunction<Graph<FGVertex, FGEdge>, FGEdge, Shape> getEdgeShapeTransformer() {
 		return new DNLArticulatedEdgeTransformer();
 	}
 
 	@Override
-	public EdgeLabel<FGVertex, FGEdge> getEdgeLabelRenderer() {
+	public Renderer.EdgeLabel<FGVertex, FGEdge> getEdgeLabelRenderer() {
 		return new DNLEdgeLabelRenderer<>(getCondenseFactor());
 	}
 
@@ -224,12 +225,12 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 	}
 
 	@Override
-	protected Map<FGEdge, List<Point2D>> positionEdgeArticulationsInLayoutSpace(
+	protected Map<FGEdge, List<Point>> positionEdgeArticulationsInLayoutSpace(
 			VisualGraphVertexShapeTransformer<FGVertex> transformer,
-			Map<FGVertex, Point2D> vertexLayoutLocations, Collection<FGEdge> edges,
+			Map<FGVertex, Point> vertexLayoutLocations, Collection<FGEdge> edges,
 			LayoutLocationMap<FGVertex, FGEdge> layoutToGridMap) throws CancelledException {
 
-		Map<FGEdge, List<Point2D>> newEdgeArticulations = new HashMap<>();
+		Map<FGEdge, List<Point>> newEdgeArticulations = new HashMap<>();
 
 		// Condensing Note: we have guilty knowledge that our parent class my condense the 
 		// vertices and edges towards the center of the graph after we calculate positions.
@@ -266,13 +267,13 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 
 					Column outermostCol = getOutermostCol(layoutToGridMap, vertices);
 					Column loopEndColumn = layoutToGridMap.nextColumn(outermostCol);
-					List<Point2D> articulations = routeLoopEdge(start, end, loopEndColumn);
+					List<Point> articulations = routeLoopEdge(start, end, loopEndColumn);
 					newEdgeArticulations.put(e, articulations);
 					continue;
 				}
 			}
 
-			List<Point2D> articulations = new ArrayList<>();
+			List<Point> articulations = new ArrayList<>();
 
 			//
 			// Basic routing: 
@@ -332,7 +333,7 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 	}
 
 	private void routeToTheRightGoingUpwards(Vertex2d start, Vertex2d end,
-			Vertex2dFactory vertex2dFactory, List<Point2D> articulations) {
+			Vertex2dFactory vertex2dFactory, List<Point> articulations) {
 
 		//
 		// For routing to the right and back up we will leave the start vertex from the right side 
@@ -367,7 +368,7 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		// restrict y from moving past the center
 		double startCenterY = start.getY() - VERTEX_BORDER_THICKNESS;
 		y1 = Math.min(y1, startCenterY);
-		articulations.add(new Point2D.Double(x1, y1)); // point is hidden behind the vertex
+		articulations.add(Point.of(x1, y1)); // point is hidden behind the vertex
 
 		// Use the spacing to move the y value towards the top of the vertex.  Just like with 
 		// the x value, restrict the y to the range between the edge and the center.
@@ -378,7 +379,7 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		x2 += distanceSpacing;
 
 		double y2 = y1;
-		articulations.add(new Point2D.Double(x2, y2));
+		articulations.add(Point.of(x2, y2));
 
 		routeAroundColumnVertices(start, end, vertex2dFactory, articulations, x2);
 
@@ -391,15 +392,15 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		// restrict from moving back past the center
 		double endYLimit = end.getY() + VERTEX_BORDER_THICKNESS;
 		y3 = Math.max(y3, endYLimit);
-		articulations.add(new Point2D.Double(x3, y3));
+		articulations.add(Point.of(x3, y3));
 
 		double x4 = end.getX();
 		double y4 = y3;
-		articulations.add(new Point2D.Double(x4, y4)); // point is hidden behind the vertex
+		articulations.add(Point.of(x4, y4)); // point is hidden behind the vertex
 	}
 
 	private void routeDownward(Vertex2d start, Vertex2d end, FGEdge e,
-			Vertex2dFactory vertex2dFactory, List<Point2D> articulations) {
+			Vertex2dFactory vertex2dFactory, List<Point> articulations) {
 
 		lighten(e);
 
@@ -408,27 +409,27 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 
 		double x1 = start.getX() - distanceSpacing; // update for extra spacing
 		double y1 = start.getY(); // hidden
-		articulations.add(new Point2D.Double(x1, y1));
+		articulations.add(Point.of(x1, y1));
 
 		double x2 = x1; // same distance over
 		double y2 = end.getY();
-		articulations.add(new Point2D.Double(x2, y2));
+		articulations.add(Point.of(x2, y2));
 
 		double x3 = end.getX() + (-distanceSpacing);
 		double y3 = y2;
 
 		routeAroundColumnVertices(start, end, vertex2dFactory, articulations, x3);
 
-		articulations.add(new Point2D.Double(x3, y3));
+		articulations.add(Point.of(x3, y3));
 
 		double x4 = end.getX();
 		double y4 = y3;
-		articulations.add(new Point2D.Double(x4, y4)); // point is hidden behind the vertex
+		articulations.add(Point.of(x4, y4)); // point is hidden behind the vertex
 
 	}
 
 	private void routeToTheLeft(Vertex2d start, Vertex2d end, FGEdge e,
-			Vertex2dFactory vertex2dFactory, List<Point2D> articulations) {
+			Vertex2dFactory vertex2dFactory, List<Point> articulations) {
 
 		lighten(e);
 
@@ -461,11 +462,11 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		x1 = Math.max(x1, endRightX);
 
 		double y1 = start.getY();
-		articulations.add(new Point2D.Double(x1, y1)); // point is hidden behind the vertex
+		articulations.add(Point.of(x1, y1)); // point is hidden behind the vertex
 
 		double x2 = x1;
 		double y2 = start.getBottom() + start.getEdgeOffset();
-		articulations.add(new Point2D.Double(x2, y2)); // out of the bottom of the vertex
+		articulations.add(Point.of(x2, y2)); // out of the bottom of the vertex
 
 		// Use the spacing to move the end x value towards the center of the vertex
 		double x3 = endRightX - VERTEX_BORDER_THICKNESS; // start at the end			
@@ -482,17 +483,17 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		double endXLimit = end.getX() + VERTEX_BORDER_THICKNESS + edgeOffset;
 		x3 = Math.max(x3, endXLimit);
 		double y3 = y2;
-		articulations.add(new Point2D.Double(x3, y3)); // into the top of the end vertex
+		articulations.add(Point.of(x3, y3)); // into the top of the end vertex
 
 		routeAroundColumnVertices(start, end, vertex2dFactory, articulations, x3);
 
 		double x4 = x3;
 		double y4 = end.getY();
-		articulations.add(new Point2D.Double(x4, y4)); // point is hidden behind the vertex
+		articulations.add(Point.of(x4, y4)); // point is hidden behind the vertex
 	}
 
 	private void routeToTheRight(Vertex2d start, Vertex2d end, Vertex2dFactory vertex2dFactory,
-			List<Point2D> articulations) {
+			List<Point> articulations) {
 
 		//
 		// For routing to the right we will leave the start vertex from the right side and
@@ -527,7 +528,7 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		x1 = Math.max(x1, startXLimit);
 
 		double y1 = start.getY();
-		articulations.add(new Point2D.Double(x1, y1)); // point is hidden behind the vertex
+		articulations.add(Point.of(x1, y1)); // point is hidden behind the vertex
 
 		// Use the spacing to move the y value towards the top of the vertex.  Just like with 
 		// the x value, restrict the y to the range between the edge and the center.
@@ -540,21 +541,21 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		// restrict from moving forwards past the center
 		double endYLimit = end.getY() - VERTEX_BORDER_THICKNESS;
 		y2 = Math.min(y2, endYLimit);
-		articulations.add(new Point2D.Double(x2, y2));
+		articulations.add(Point.of(x2, y2));
 
 		routeAroundColumnVertices(start, end, vertex2dFactory, articulations, x2);
 
 		double x3 = x2;
 		double y3 = end.getY();
-		articulations.add(new Point2D.Double(x3, y3)); // point is hidden behind the vertex
+		articulations.add(Point.of(x3, y3)); // point is hidden behind the vertex
 
 		double x4 = end.getX();
 		double y4 = y3;
-		articulations.add(new Point2D.Double(x4, y4)); // point is hidden behind the vertex
+		articulations.add(Point.of(x4, y4)); // point is hidden behind the vertex
 	}
 
 	private void routeAroundColumnVertices(Vertex2d start, Vertex2d end,
-			Vertex2dFactory vertex2dFactory, List<Point2D> articulations, double edgeX) {
+			Vertex2dFactory vertex2dFactory, List<Point> articulations, double edgeX) {
 
 		Column column = vertex2dFactory.getColumn(edgeX);
 		int columnIndex = 0;
@@ -567,7 +568,7 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 	}
 
 	private void routeAroundColumnVertices(Vertex2d start, Vertex2d end, int column,
-			Vertex2dFactory vertex2dFactory, List<Point2D> articulations, double edgeX) {
+			Vertex2dFactory vertex2dFactory, List<Point> articulations, double edgeX) {
 
 		if (useSimpleRouting()) {
 			return;
@@ -648,7 +649,7 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 				// p1 - same x; y just above vertex
 				double x = edgeX;
 				double y = vertexClipper.getTopOffset(otherVertex, vertexToEdgeOffset);
-				articulations.add(new Point2D.Double(x, y));
+				articulations.add(Point.of(x, y));
 
 				// Maybe merge points if they are too close together.  Visually, many lines 
 				// moving around intersecting vertices looks busy.  When the intersecting 
@@ -664,14 +665,14 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 						shifted to the outside of the intersecting vertex.  This will get repeated
 						for each vertex that is intersecting.		 			 	  			 	
 					*/
-					Point2D previousArticulation = articulations.get(articulations.size() - 2);
+					Point previousArticulation = articulations.get(articulations.size() - 2);
 					int closenessHeight = 50;
-					double previousY = previousArticulation.getY();
+					double previousY = previousArticulation.y;
 					if (vertexClipper.isTooCloseY(y, previousY, closenessHeight)) {
 						articulations.remove(articulations.size() - 1);
 						articulations.remove(articulations.size() - 1);
-						Point2D newPrevious = articulations.get(articulations.size() - 1);
-						y = newPrevious.getY();
+						Point newPrevious = articulations.get(articulations.size() - 1);
+						y = newPrevious.y;
 					}
 				}
 
@@ -679,15 +680,15 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 				int offset = Math.max(vertexToEdgeOffset, distanceSpacing);
 				offset *= exaggerationFactor;
 				x = vertexClipper.getSideOffset(otherVertex, offset);
-				articulations.add(new Point2D.Double(x, y));
+				articulations.add(Point.of(x, y));
 
 				// p3 - same x; move y above/below the vertex
 				y = vertexClipper.getBottomOffset(otherVertex, vertexToEdgeOffset);
-				articulations.add(new Point2D.Double(x, y));
+				articulations.add(Point.of(x, y));
 
 				// p4 - move over back to our original x; same y
 				x = edgeX;
-				articulations.add(new Point2D.Double(x, y));
+				articulations.add(Point.of(x, y));
 			}
 		}
 	}
@@ -696,10 +697,10 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		return !getLayoutOptions().useEdgeRoutingAroundVertices();
 	}
 
-	private List<Point2D> routeLoopEdge(Vertex2d start, Vertex2d end, Column loopEndColumn) {
+	private List<Point> routeLoopEdge(Vertex2d start, Vertex2d end, Column loopEndColumn) {
 
 		// going backwards
-		List<Point2D> articulations = new ArrayList<>();
+		List<Point> articulations = new ArrayList<>();
 
 		// loop first point - same y coord as the vertex; x is the middle of the next col
 		int halfWidth = loopEndColumn.getPaddedWidth(isCondensedLayout()) >> 1;
@@ -715,17 +716,17 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		int delta = endRow - startRow;
 		x += delta; // adding the delta makes overlap less likely
 
-		Point2D startVertexPoint = start.center;
-		double y1 = startVertexPoint.getY();
-		Point2D first = new Point2D.Double(x, y1);
+		Point startVertexPoint = start.center;
+		double y1 = startVertexPoint.y;
+		Point first = Point.of(x, y1);
 		articulations.add(first);
 
 		// loop second point - same y coord as destination; 
 		// 					   x is the col after the outermost dominated vertex
 
-		Point2D endVertexPoint = end.center;
-		double y2 = endVertexPoint.getY();
-		Point2D second = new Point2D.Double(x, y2);
+		Point endVertexPoint = end.center;
+		double y2 = endVertexPoint.y;
+		Point second = Point.of(x, y2);
 		articulations.add(second);
 
 		return articulations;
@@ -761,9 +762,10 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		return true;
 	}
 
+
 	@Override
-	protected Point2D getVertexLocation(FGVertex v, Column col, Row<FGVertex> row,
-			Rectangle bounds) {
+	protected Point getVertexLocation(FGVertex v, Column col, Row<FGVertex> row,
+									  Rectangle bounds) {
 		return getCenteredVertexLocation(v, col, row, bounds);
 	}
 
@@ -1016,7 +1018,7 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 	private class Vertex2dFactory {
 
 		private VisualGraphVertexShapeTransformer<FGVertex> vertexShaper;
-		private Map<FGVertex, Point2D> vertexLayoutLocations;
+		private Map<FGVertex, Point> vertexLayoutLocations;
 		private LayoutLocationMap<FGVertex, FGEdge> layoutToGridMap;
 		private int edgeOffset;
 		private Map<FGVertex, Vertex2d> cache =
@@ -1024,7 +1026,7 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 				vertexLayoutLocations, layoutToGridMap, getEdgeOffset()));
 
 		Vertex2dFactory(VisualGraphVertexShapeTransformer<FGVertex> transformer,
-				Map<FGVertex, Point2D> vertexLayoutLocations,
+				Map<FGVertex, Point> vertexLayoutLocations,
 				LayoutLocationMap<FGVertex, FGEdge> layoutToGridMap, int edgeOffset) {
 			this.vertexShaper = transformer;
 			this.vertexLayoutLocations = vertexLayoutLocations;
@@ -1070,13 +1072,13 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 		private Column column;
 		private int rowIndex;
 		private int columnIndex;
-		private Point2D center; // center point of vertex shape
+		private Point center; // center point of vertex shape
 		private Shape shape;
 		private Rectangle bounds; // centered over the 'location'
 		private int edgeOffset;
 
 		Vertex2d(FGVertex v, VisualGraphVertexShapeTransformer<FGVertex> transformer,
-				Map<FGVertex, Point2D> vertexLayoutLocations,
+				Map<FGVertex, Point> vertexLayoutLocations,
 				LayoutLocationMap<FGVertex, FGEdge> layoutLocations, int edgeOffset) {
 
 			this.v = v;
@@ -1090,34 +1092,34 @@ public class DecompilerNestedLayout extends AbstractFGLayout {
 			this.edgeOffset = edgeOffset;
 
 			// center bounds over location (this is how the graph gets painted)
-			double cornerX = center.getX() + bounds.getWidth() / 2;
-			double cornerY = center.getY() + bounds.getHeight() / 2;
+			double cornerX = center.x + bounds.getWidth() / 2;
+			double cornerY = center.y + bounds.getHeight() / 2;
 			Point2D corner = new Point2D.Double(cornerX, cornerY);
-			bounds.setFrameFromCenter(center, corner);
+			bounds.setFrameFromCenter(new Point2D.Double(center.x, center.y), corner);
 		}
 
 		double getY() {
-			return center.getY();
+			return center.y;
 		}
 
 		double getX() {
-			return center.getX();
+			return center.x;
 		}
 
 		double getLeft() {
-			return center.getX() - (bounds.width >> 1);
+			return center.x - (bounds.width >> 1);
 		}
 
 		double getRight() {
-			return center.getX() + (bounds.width >> 1);
+			return center.x + (bounds.width >> 1);
 		}
 
 		double getBottom() {
-			return center.getY() + (bounds.height >> 1);
+			return center.y + (bounds.height >> 1);
 		}
 
 		double getTop() {
-			return center.getY() - (bounds.height >> 1);
+			return center.y - (bounds.height >> 1);
 		}
 
 		int getEdgeOffset() {

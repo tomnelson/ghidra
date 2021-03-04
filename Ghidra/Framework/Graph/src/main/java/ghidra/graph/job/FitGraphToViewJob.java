@@ -15,20 +15,31 @@
  */
 package ghidra.graph.job;
 
-import static ghidra.graph.viewer.GraphViewerUtils.*;
+import ghidra.graph.viewer.VisualEdge;
+import ghidra.graph.viewer.VisualVertex;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.transform.MutableTransformer;
+import util.CollectionUtils;
 
-import java.awt.*;
+import java.awt.Dimension;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.HashSet;
 import java.util.Set;
 
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
-import ghidra.graph.viewer.VisualEdge;
-import ghidra.graph.viewer.VisualVertex;
-import util.CollectionUtils;
+import static ghidra.graph.viewer.GraphViewerUtils.addPaddingToRectangle;
+import static ghidra.graph.viewer.GraphViewerUtils.getScaleRatioToFitInDimension;
+import static ghidra.graph.viewer.GraphViewerUtils.getTotalGraphSizeInLayoutSpace;
+import static ghidra.graph.viewer.GraphViewerUtils.translatePointFromViewSpaceToLayoutSpace;
+import static ghidra.graph.viewer.GraphViewerUtils.translateShapeFromLayoutSpaceToViewSpace;
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 /**
  * A job to scale one or more viewers such that the contained graph will fit entirely inside the
@@ -99,8 +110,8 @@ public class FitGraphToViewJob<V extends VisualVertex, E extends VisualEdge<V>>
 
 	private boolean graphIsEmpty() {
 		VisualizationViewer<V, E> viewer = CollectionUtils.any(viewers);
-		Graph<V, E> graph = viewer.getGraphLayout().getGraph();
-		return graph.getVertexCount() == 0;
+		Graph<V, E> graph = viewer.getVisualizationModel().getGraph();
+		return graph.vertexSet().isEmpty();
 	}
 
 	@Override

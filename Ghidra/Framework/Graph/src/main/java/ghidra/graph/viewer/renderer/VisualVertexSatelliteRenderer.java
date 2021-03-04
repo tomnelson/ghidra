@@ -17,12 +17,13 @@ package ghidra.graph.viewer.renderer;
 
 import java.awt.*;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.RenderContext;
-import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
 import ghidra.graph.viewer.vertex.AbstractVisualVertexRenderer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationModel;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.transform.shape.GraphicsDecorator;
 
 /**
  * A renderer for vertices for the satellite view.  This is really just a basic renderer 
@@ -35,18 +36,19 @@ public class VisualVertexSatelliteRenderer<V extends VisualVertex, E extends Vis
 	 * Overridden to handle painting emphasis.
 	 */
 	@Override
-	protected void paintIconForVertex(RenderContext<V, E> rc, V v, Layout<V, E> layout) {
+	protected void paintIconForVertex(RenderContext<V, E> rc, LayoutModel<V> layoutModel,
+									  V v) {
 
 		GraphicsDecorator defaultGraphics = rc.getGraphicsContext();
 		if (v.isSelected()) {
-			Shape shape = getFullShape(rc, layout, v);
+			Shape shape = getFullShape(rc, layoutModel, v);
 			Rectangle bounds = shape.getBounds();
 			paintHighlight(rc, v, defaultGraphics, bounds);
 		}
 
 		double empahsis = v.getEmphasis();
 		if (empahsis == 0) {
-			super.paintIconForVertex(rc, v, layout);
+			super.paintIconForVertex(rc, layoutModel, v);
 			return;
 		}
 
@@ -60,18 +62,19 @@ public class VisualVertexSatelliteRenderer<V extends VisualVertex, E extends Vis
 //		super.paintIconForVertex(rc, v, layout);
 //		rc.setGraphicsContext(defaultGraphics);
 
-		super.paintIconForVertex(rc, v, layout);
+		super.paintIconForVertex(rc, layoutModel, v);
 	}
 
 	@Override
-	protected Shape prepareFinalVertexShape(RenderContext<V, E> rc, V v, Layout<V, E> layout,
-			int[] coords) {
+	protected Shape prepareFinalVertexShape(RenderContext<V, E> rc,
+											LayoutModel<V> layoutModel, V v,
+											int[] coords) {
 
 		// DEBUG original behavior; this can show the true shape of the vertex
 		// return super.prepareFinalVertexShape(rc, v, layout, coords);
 
 		// use the compact shape in the satellite view		
-		return getCompactShape(rc, layout, v);
+		return getCompactShape(rc, layoutModel, v);
 	}
 
 	@Override

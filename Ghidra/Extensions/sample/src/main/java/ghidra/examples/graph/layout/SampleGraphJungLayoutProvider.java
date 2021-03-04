@@ -15,21 +15,21 @@
  */
 package ghidra.examples.graph.layout;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import ghidra.examples.graph.*;
 import ghidra.graph.viewer.layout.VisualGraphLayout;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jungrapht.visualization.layout.model.LayoutModel;
 
 public abstract class SampleGraphJungLayoutProvider extends SampleGraphLayoutProvider {
 
-	protected abstract Layout<SampleVertex, SampleEdge> createLayout(SampleGraph g);
+	protected abstract LayoutModel<SampleVertex> createLayout(SampleGraph g);
 
 	@Override
 	public VisualGraphLayout<SampleVertex, SampleEdge> getLayout(SampleGraph g, TaskMonitor monitor)
 			throws CancelledException {
 
-		Layout<SampleVertex, SampleEdge> jungLayout = createLayout(g);
+		LayoutModel<SampleVertex> jungLayout = createLayout(g);
 
 		initVertexLocations(g, jungLayout);
 

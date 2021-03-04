@@ -23,13 +23,13 @@ import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.output.XMLOutputter;
 
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.FunctionGraph;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.*;
 import ghidra.util.Msg;
 import ghidra.util.ObjectStorage;
 import ghidra.util.xml.GenericXMLOutputter;
+import org.jgrapht.Graph;
 
 public class LazyGraphGroupSaveableXML extends LazySaveableXML {
 
@@ -42,7 +42,7 @@ public class LazyGraphGroupSaveableXML extends LazySaveableXML {
 	@Override
 	public boolean isEmpty() {
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 		return !vertices.stream().anyMatch(v -> v instanceof GroupedFunctionGraphVertex);
 	}
 

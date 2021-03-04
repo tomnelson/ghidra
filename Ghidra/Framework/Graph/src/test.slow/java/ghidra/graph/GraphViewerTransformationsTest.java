@@ -21,10 +21,10 @@ import java.awt.geom.Point2D;
 
 import javax.swing.JFrame;
 
+import org.jungrapht.visualization.layout.algorithms.DAGLayoutAlgorithm;
+import org.jungrapht.visualization.layout.algorithms.LayoutAlgorithm;
 import org.junit.*;
 
-import edu.uci.ics.jung.algorithms.layout.DAGLayout;
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import generic.test.AbstractGenericTest;
 import ghidra.graph.graphs.*;
 import ghidra.graph.support.*;
@@ -40,7 +40,8 @@ public class GraphViewerTransformationsTest {
 	public void setUp() throws Exception {
 
 		graph = buildGraph();
-		Layout<AbstractTestVertex, TestEdge> jungLayout = new DAGLayout<>(graph);
+		LayoutAlgorithm<AbstractTestVertex> jungLayout =
+				DAGLayoutAlgorithm.<AbstractTestVertex, Object>builder().build();
 		TestGraphLayout testLayout = new TestGraphLayout(jungLayout);
 		viewer = new TestGraphViewer(testLayout, new Dimension(400, 400));
 

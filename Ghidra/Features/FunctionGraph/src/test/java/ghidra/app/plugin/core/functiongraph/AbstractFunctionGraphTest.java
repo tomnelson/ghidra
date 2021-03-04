@@ -18,7 +18,9 @@ package ghidra.app.plugin.core.functiongraph;
 import static ghidra.graph.viewer.GraphViewerUtils.*;
 import static org.junit.Assert.*;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Rectangle;
+import java.awt.Window;
 import java.awt.datatransfer.*;
 import java.awt.geom.Point2D;
 import java.io.IOException;
@@ -29,6 +31,14 @@ import java.util.function.Supplier;
 
 import javax.swing.*;
 
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.VisualizationModel;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.selection.MutableSelectedState;
+import org.jungrapht.visualization.selection.SelectedState;
+import org.jungrapht.visualization.util.PointUtils;
 import org.junit.*;
 
 import docking.*;
@@ -40,11 +50,6 @@ import docking.widgets.EventTrigger;
 import docking.widgets.OptionDialog;
 import docking.widgets.dialogs.MultiLineInputDialog;
 import docking.widgets.fieldpanel.FieldPanel;
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.VisualizationModel;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 import generic.test.AbstractGenericTest;
 import generic.test.TestUtils;
 import ghidra.app.cmd.label.AddLabelCmd;
@@ -408,22 +413,22 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 // protected methods
 //==================================================================================================
 
-	protected Point2D getLocation(FGVertex vertex) {
+	protected Point getLocation(FGVertex vertex) {
 		FGController controller = getFunctionGraphController();
 		FGView view = controller.getView();
 		VisualizationViewer<FGVertex, FGEdge> primaryGraphViewer = view.getPrimaryGraphViewer();
-		VisualizationModel<FGVertex, FGEdge> model = primaryGraphViewer.getModel();
-		Layout<FGVertex, FGEdge> graphLayout = model.getGraphLayout();
+		VisualizationModel<FGVertex, FGEdge> model = primaryGraphViewer.getVisualizationModel();
+		LayoutModel<FGVertex> graphLayout = model.getLayoutModel();
 		return graphLayout.apply(vertex);
 	}
 
-	protected boolean pointsAreSimilar(Point2D originalPoint, Point2D reloadedPoint) {
-		double xDiff = Math.abs(originalPoint.getX() - reloadedPoint.getX());
+	protected boolean pointsAreSimilar(Point originalPoint, Point reloadedPoint) {
+		double xDiff = Math.abs(originalPoint.x - reloadedPoint.x);
 		if (xDiff > 20) {
 			return false;
 		}
 
-		double yDiff = Math.abs(originalPoint.getY() - reloadedPoint.getY());
+		double yDiff = Math.abs(originalPoint.y - reloadedPoint.y);
 		if (yDiff > 20) {
 			return false;
 		}
@@ -523,9 +528,9 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 		return (FGPrimaryViewer) getInstanceField("primaryViewer", component);
 	}
 
-	protected Layout<FGVertex, FGEdge> getPrimaryLayout() {
+	protected LayoutModel<FGVertex> getPrimaryLayout() {
 		FGPrimaryViewer primaryViewer = getPrimaryGraphViewer();
-		return primaryViewer.getGraphLayout();
+		return primaryViewer.getVisualizationModel().getLayoutModel();
 	}
 
 	/**
@@ -585,16 +590,16 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 	}
 
 	protected void assertPointsAreAboutEqual(String message, Point primaryPoint, Point clonePoint) {
-		int x1 = primaryPoint.x;
-		int x2 = clonePoint.x;
+		int x1 = (int)primaryPoint.x;
+		int x2 = (int)clonePoint.x;
 
 		int xDiff = Math.abs(x1 - x2);
 		if (xDiff != 0 && xDiff != 1) {
 			Assert.fail(message + ": x value for points is not the same");
 		}
 
-		int y1 = primaryPoint.y;
-		int y2 = clonePoint.y;
+		int y1 = (int)primaryPoint.y;
+		int y2 = (int)clonePoint.y;
 
 		int yDiff = Math.abs(y1 - y2);
 		if (yDiff != 0 && yDiff != 1) {
@@ -962,7 +967,7 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 
 	protected void moveViewerLocationWithoutAnimation(Point translation) {
 		VisualGraphViewUpdater<FGVertex, FGEdge> updater = getGraphUpdater();
-		runSwing(() -> updater.moveViewerLocationWithoutAnimation(translation));
+		runSwing(() -> updater.moveViewerLocationWithoutAnimation(new java.awt.Point((int)translation.x, (int)translation.y)));
 	}
 
 //==================================================================================================
@@ -973,12 +978,12 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 			Set<FGVertex> groupVertices, Set<FGEdge> ungroupedEdges) {
 
 		for (FGVertex vertex : groupVertices) {
-			Collection<FGEdge> inEdges = graph.getInEdges(vertex);
+			Collection<FGEdge> inEdges = graph.incomingEdgesOf(vertex);
 			for (FGEdge edge : inEdges) {
 				ungroupedEdges.add(edge);
 			}
 
-			Collection<FGEdge> outEdges = graph.getOutEdges(vertex);
+			Collection<FGEdge> outEdges = graph.outgoingEdgesOf(vertex);
 			for (FGEdge edge : outEdges) {
 				ungroupedEdges.add(edge);
 			}
@@ -1135,8 +1140,8 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 	}
 
 	protected void assertSelected(Collection<FGVertex> vertices) {
-		PickedState<FGVertex> pickedState = getPickedState();
-		Set<FGVertex> picked = pickedState.getPicked();
+		SelectedState<FGVertex> pickedState = getPickedState();
+		Set<FGVertex> picked = pickedState.getSelected();
 
 		assertEquals(vertices.size(), picked.size());
 		for (FGVertex vertex : picked) {
@@ -1274,7 +1279,7 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 		Graph<FGVertex, FGEdge> graph = functionGraph;
 		assertEquals(
 			"Do not have the expected number of vertices after modifying our test " + "graph", 5,
-			graph.getVertexCount());
+			graph.vertexSet().size());
 
 		return funtionGraphData;
 	}
@@ -1333,7 +1338,7 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 		FunctionGraph functionGraph = graphData.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
 
-		Collection<FGEdge> originalEdges = graph.getEdges();
+		Collection<FGEdge> originalEdges = graph.edgeSet();
 
 		Set<FGVertex> ungroupedVertices =
 			selectVertices(functionGraph, "01002d2b" /* Another Local*/, "01002d1f" /* MyLocal */);
@@ -1760,7 +1765,7 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 		FGVertex v1 = functionGraph.getVertexForAddress(startAddress);
 		FGVertex v2 = functionGraph.getVertexForAddress(endAddress);
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		return graph.findEdge(v1, v2);
+		return graph.getEdge(v1, v2);
 	}
 
 	protected Set<FGEdge> getEdges(Graph<FGVertex, FGEdge> graph, Set<FGVertex> ungroupedVertices) {
@@ -1786,11 +1791,11 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 		return (GroupedFunctionGraphVertex) vertex;
 	}
 
-	private PickedState<FGVertex> getPickedState() {
+	private MutableSelectedState<FGVertex> getPickedState() {
 		FGComponent functionGraphViewer = getGraphComponent();
 		VisualizationViewer<FGVertex, FGEdge> primaryViewer =
 			functionGraphViewer.getPrimaryViewer();
-		return primaryViewer.getPickedVertexState();
+		return primaryViewer.getSelectedVertexState();
 	}
 
 	private DockingActionIf getRegroupAction(final FGVertex vertex) {
@@ -1873,19 +1878,19 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 
 	protected void pickVertex(FGVertex v) {
 		runSwing(() -> {
-			PickedState<FGVertex> pickedState = getPickedState();
+			MutableSelectedState<FGVertex> pickedState = getPickedState();
 			pickedState.clear();
-			pickedState.pick(v, true);
+			pickedState.select(v, true);
 		});
 	}
 
 	protected void pickVertices(final Set<FGVertex> vertices) {
 		runSwing(() -> {
-			PickedState<FGVertex> pickedState = getPickedState();
+			MutableSelectedState<FGVertex> pickedState = getPickedState();
 			pickedState.clear();
 
 			for (FGVertex vertex : vertices) {
-				pickedState.pick(vertex, true);
+				pickedState.select(vertex, true);
 			}
 		});
 	}
@@ -1913,7 +1918,7 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 		FGVertex startVertex = functionGraph.getVertexForAddress(startAddress);
 		FGVertex destinationVertex = functionGraph.getVertexForAddress(destinationAddress);
 
-		FGEdge edge = graph.findEdge(startVertex, destinationVertex);
+		FGEdge edge = graph.getEdge(startVertex, destinationVertex);
 		runSwing(() -> graph.removeEdge(edge));
 		FGController controller = getFunctionGraphController();
 		controller.repaint();
@@ -2090,7 +2095,7 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 		// make sure we have new edges
 		//
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGEdge> groupedEdges = graph.getIncidentEdges(groupedVertex);
+		Collection<FGEdge> groupedEdges = graph.edgesOf(groupedVertex);
 
 		assertEquals("Ungrouped edges not replaced with new edges for the grouped vertex",
 			expectedGroupedEdgeCount, groupedEdges.size());
@@ -2118,7 +2123,7 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 		FunctionGraph functionGraph = data.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
 
-		FGEdge edge = graph.findEdge(start, destination);
+		FGEdge edge = graph.getEdge(start, destination);
 		assertNotNull("No edge exists for vertices: " + start + "   and   " + destination, edge);
 	}
 
@@ -2126,7 +2131,7 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 		FGData data = getFunctionGraphData();
 		FunctionGraph functionGraph = data.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		int actualCount = graph.getEdgeCount();
+		int actualCount = graph.edgeSet().size();
 		assertEquals("Graph has a different number of edges than expected.", expectedCount,
 			actualCount);
 	}
@@ -2280,7 +2285,7 @@ public abstract class AbstractFunctionGraphTest extends AbstractGhidraHeadedInte
 //==================================================================================================	
 
 	protected void moveView(int amount) {
-		Point translation = new Point(amount, amount);
+		Point translation = Point.of(amount, amount);
 		moveViewerLocationWithoutAnimation(translation);
 	}
 

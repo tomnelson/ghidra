@@ -19,10 +19,12 @@ import java.awt.Shape;
 import java.awt.geom.*;
 import java.util.List;
 
-import edu.uci.ics.jung.visualization.decorators.ParallelEdgeShapeTransformer;
 import ghidra.graph.viewer.*;
 import ghidra.util.Msg;
 import ghidra.util.SystemUtilities;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.decorators.ParallelEdgeShapeFunction;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * An edge shape that renders as a series of straight lines between articulation points.
@@ -30,7 +32,7 @@ import ghidra.util.SystemUtilities;
  * @param <E> the edge type
  */
 public class ArticulatedEdgeTransformer<V extends VisualVertex, E extends VisualEdge<V>>
-		extends ParallelEdgeShapeTransformer<V, E> {
+		extends ParallelEdgeShapeFunction<V, E> {
 
 	protected static final int OVERLAPPING_EDGE_OFFSET = 10;
 
@@ -51,7 +53,7 @@ public class ArticulatedEdgeTransformer<V extends VisualVertex, E extends Visual
 	 * the case of self-loop edges, the Loop shared instance.
 	 */
 	@Override
-	public Shape apply(E e) {
+	public Shape apply(Graph<V, E> graph, E e) {
 		V start = e.getStart();
 		V end = e.getEnd();
 
@@ -72,16 +74,16 @@ public class ArticulatedEdgeTransformer<V extends VisualVertex, E extends Visual
 			return null;
 		}
 
-		List<Point2D> articulations = e.getArticulationPoints();
+		List<Point> articulations = e.getArticulationPoints();
 		final double originX = p1.getX();
 		final double originY = p1.getY();
 
 		int offset = getOverlapOffset(e);
 		GeneralPath path = new GeneralPath();
 		path.moveTo(0, 0);
-		for (Point2D pt : articulations) {
-			float x = (float) (pt.getX() - originX) + offset;
-			float y = (float) (pt.getY() - originY) + offset;
+		for (Point pt : articulations) {
+			float x = (float) (pt.x - originX) + offset;
+			float y = (float) (pt.y - originY) + offset;
 			path.lineTo(x, y);
 			path.moveTo(x, y);
 		}
@@ -150,7 +152,7 @@ public class ArticulatedEdgeTransformer<V extends VisualVertex, E extends Visual
 		// The reason this happens is that the newly 'equals' vertices live in the edge, but 
 		// they have not had their 'setLocation' called--the graph contains a vertex that 
 		// is 'equals' that has had its 'setLocation' called.  When this transformer grabs the
-		// vertex from the edge, its location was never set.
+		// vertex from the edge, its location wass never set.
 		// 
 		boolean isStart = e.getStart() == v;
 		String type = isStart ? "start" : "end";

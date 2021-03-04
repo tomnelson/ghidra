@@ -18,6 +18,7 @@ package ghidra.graph.viewer.edge.routing;
 import static ghidra.graph.viewer.GraphViewerUtils.*;
 
 import java.awt.*;
+import java.awt.Shape;
 import java.awt.geom.PathIterator;
 import java.awt.geom.Point2D;
 import java.util.*;
@@ -27,13 +28,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.collections4.*;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.util.Pair;
-import edu.uci.ics.jung.visualization.VisualizationServer;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
 import ghidra.graph.viewer.renderer.DebugShape;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.util.PointUtils;
 
 class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 		extends BasicEdgeRouter<V, E> {
@@ -53,7 +55,7 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 	public void route() {
 		debugCounter.set(debugCounter.incrementAndGet());
 
-		Layout<V, E> layout = viewer.getGraphLayout();
+		LayoutModel<V> layout = viewer.getVisualizationModel().getLayoutModel();
 		Graph<V, E> graph = layout.getGraph();
 
 		for (E edge : edges) {
@@ -63,7 +65,7 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 				DebugShape<V, E> debugShape = new DebugShape<>(viewer, debugCounter, "Default",
 					getEdgeShapeInGraphSpace(viewer, edge), getPhantomEdgeColor(edge, true));
 				viewer.addPostRenderPaintable(debugShape);
-				List<Point2D> articulations = edge.getArticulationPoints();
+				List<Point> articulations = edge.getArticulationPoints();
 				if (!articulations.isEmpty()) {
 					articulations = removeBadlyAngledArticulations(edge, articulations);
 					edge.setArticulationPoints(articulations);
@@ -71,18 +73,17 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 				}
 			}
 
-			Pair<V> endpoints = graph.getEndpoints(edge);
-			V start = endpoints.getFirst();
-			V end = endpoints.getSecond();
+			V start = graph.getEdgeSource(edge);
+			V end = graph.getEdgeTarget(edge);
 
 			if (start == end) {
 				continue; // self-loop
 			}
 
-			Point2D startPoint = layout.apply(start);
-			Point2D endPoint = layout.apply(end);
+			Point startPoint = layout.apply(start);
+			Point endPoint = layout.apply(end);
 
-			Shape boxBetweenVertices = createRectangle(startPoint, endPoint);
+			Shape boxBetweenVertices = createRectangle(startPoint.x, startPoint.y, endPoint.x, endPoint.y);
 			Shape xBox = translateShapeFromLayoutSpaceToGraphSpace(boxBetweenVertices, viewer);
 			spaceBetweenEndPointsShape = constrictToVerticesInsideShape(xBox, start, end);
 
@@ -101,7 +102,7 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 			debugShape = new DebugShape<>(viewer, debugCounter, "Left Edge", routedShape,
 				getPhantomEdgeColor(edge, true));
 			viewer.addPostRenderPaintable(debugShape);
-			List<Point2D> articulations = getArticulations(routedShape);
+			List<Point> articulations = getArticulations(routedShape);
 			if (!isOccluded(edge, routedShape)) {
 				articulations = removeBadlyAngledArticulations(edge, articulations);
 				edge.setArticulationPoints(articulations);
@@ -124,7 +125,7 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 			}
 
 			// do the basic--just a default edge line
-			edge.setArticulationPoints(new ArrayList<Point2D>());
+			edge.setArticulationPoints(new ArrayList<Point>());
 		}
 	}
 
@@ -163,16 +164,27 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 		return new Rectangle((int) smallestX, (int) smallestY, width, height);
 	}
 
+	private Rectangle createRectangle(double startX, double startY, double endX, double endY) {
+
+		double smallestX = Math.min(startX, endX);
+		double smallestY = Math.min(startY, endY);
+		double largestX = Math.max(startX, endX);
+		double largestY = Math.max(startY, endY);
+		int width = (int) (largestX - smallestX);
+		int height = (int) (largestY - smallestY);
+		return new Rectangle((int) smallestX, (int) smallestY, width, height);
+	}
+
+
 	private void moveArticulationsAroundVertices(Set<V> vertices, E edge, boolean goLeft) {
 
-		Layout<V, E> layout = viewer.getGraphLayout();
+		LayoutModel<V> layout = viewer.getVisualizationModel().getLayoutModel();
 		Graph<V, E> graph = layout.getGraph();
-		Pair<V> endpoints = graph.getEndpoints(edge);
 
-		V start = endpoints.getFirst();
-		V end = endpoints.getSecond();
-		Point2D startPoint = layout.apply(start);
-		Point2D endPoint = layout.apply(end);
+		V start = graph.getEdgeSource(edge);
+		V end = graph.getEdgeTarget(edge);
+		Point startPoint = layout.apply(start);
+		Point endPoint = layout.apply(end);
 
 //		Rectangle bounds = getBoundsForVerticesInLayoutSpace(viewer, vertices);
 
@@ -190,17 +202,17 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 		int x = goLeft ? bounds.x : bounds.x + bounds.width;
 		x += goLeft ? -padding : padding;
 
-		Point2D top = new Point2D.Double(x, bounds.y - padding);
-		Point2D bottom = new Point2D.Double(x, bounds.y + bounds.height + padding);
+		Point top = Point.of(x, bounds.y - padding);
+		Point bottom = Point.of(x, bounds.y + bounds.height + padding);
 
-		if (startPoint.getY() > endPoint.getY()) {
+		if (startPoint.y > endPoint.y) {
 			// swap the top and bottom points, as our source vertex is below the destination
-			Point2D newTop = bottom;
+			Point newTop = bottom;
 			bottom = top;
 			top = newTop;
 		}
 
-		List<Point2D> articulationPoints = new ArrayList<>();
+		List<Point> articulationPoints = new ArrayList<>();
 		articulationPoints.add(top);
 		articulationPoints.add(bottom);
 
@@ -229,14 +241,13 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 	/**
 	 * Returns a mapping edges to vertices that touch them.
 	 * 
-	 * @param viewer the viewer containing the graph
 	 * @param edgeCollection the edges to check for occlusion
 	 * @return a mapping of occluded edges (a subset of the provided edges) to those vertices that
 	 *         occlude them.
 	 */
 	private Map<E, Set<V>> getOccludedEdges(Collection<E> edgeCollection) {
 
-		Layout<V, E> layout = viewer.getGraphLayout();
+		LayoutModel<V> layout = viewer.getVisualizationModel().getLayoutModel();
 		Graph<V, E> graph = layout.getGraph();
 
 		Set<V> prototype = new HashSet<>();
@@ -251,8 +262,9 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 
 			for (E edge : edgeCollection) {
 				Shape edgeShape = getEdgeShapeInGraphSpace(viewer, edge);
-				Pair<V> endpoints = graph.getEndpoints(edge);
-				if (v == endpoints.getFirst() || v == endpoints.getSecond()) {
+				V source = graph.getEdgeSource(edge);
+				V target = graph.getEdgeTarget(edge);
+				if (v == source || v == target) {
 					// do we ever care if an edge is occluded by its own vertices?
 					continue;
 				}
@@ -272,9 +284,9 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 			return cachedVertexBoundsMap;
 		}
 
-		Layout<V, E> layout = viewer.getGraphLayout();
+		LayoutModel<V> layout = viewer.getVisualizationModel().getLayoutModel();
 		Graph<V, E> graph = layout.getGraph();
-		Collection<V> vertices = graph.getVertices();
+		Collection<V> vertices = graph.vertexSet();
 
 		Map<V, Rectangle> map = new HashMap<>();
 		for (V v : vertices) {
@@ -286,9 +298,9 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 		return map;
 	}
 
-	private List<Point2D> getArticulations(Shape shape) {
+	private List<Point> getArticulations(Shape shape) {
 		PathIterator pathIterator = shape.getPathIterator(null);
-		List<Point2D> articulations = new ArrayList<>();
+		List<Point> articulations = new ArrayList<>();
 		double[] coords = new double[6];
 
 		// Note: this extraction is based upon a two articulation edge!
@@ -297,22 +309,22 @@ class ArticulatedEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>>
 		// 2nd element is the first articulation
 		pathIterator.currentSegment(coords);
 		Point2D.Double pathPoint = new Point2D.Double(coords[0], coords[1]);
-		Point layoutSpacePoint = translatePointFromGraphSpaceToLayoutSpace(pathPoint, viewer);
-		articulations.add(layoutSpacePoint);
+		java.awt.Point layoutSpacePoint = translatePointFromGraphSpaceToLayoutSpace(pathPoint, viewer);
+		articulations.add(PointUtils.convert(layoutSpacePoint));
 
 		// 3rd element is the second articulation
 		pathIterator.next();
 		pathIterator.currentSegment(coords);
 		pathPoint = new Point2D.Double(coords[0], coords[1]);
 		layoutSpacePoint = translatePointFromGraphSpaceToLayoutSpace(pathPoint, viewer);
-		articulations.add(layoutSpacePoint);
+		articulations.add(PointUtils.convert(layoutSpacePoint));
 
 		return articulations;
 	}
 
 	private Shape createLineEdge(V start, V end, E edge) {
 
-		edge.setArticulationPoints(new ArrayList<Point2D>()); // clear the points--straight line
+		edge.setArticulationPoints(new ArrayList<Point>()); // clear the points--straight line
 
 		return getEdgeShapeInGraphSpace(viewer, edge);
 	}

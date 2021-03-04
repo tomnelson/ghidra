@@ -19,19 +19,19 @@ import java.awt.Rectangle;
 import java.awt.Shape;
 import java.util.Set;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.RenderContext;
-import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.GroupedFunctionGraphVertex;
 import ghidra.graph.viewer.vertex.VisualVertexRenderer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.transform.shape.GraphicsDecorator;
 
 public class FGVertexRenderer extends VisualVertexRenderer<FGVertex, FGEdge> {
 
 	@Override
 	protected void paintDropShadow(RenderContext<FGVertex, FGEdge> rc, GraphicsDecorator g,
-			Shape shape, FGVertex vertex) {
+								   Shape shape, FGVertex vertex) {
 
 		Rectangle bounds = shape.getBounds();
 		if (vertex instanceof GroupedFunctionGraphVertex) {
@@ -59,7 +59,7 @@ public class FGVertexRenderer extends VisualVertexRenderer<FGVertex, FGEdge> {
 
 	@Override
 	protected void paintVertexOrVertexShape(RenderContext<FGVertex, FGEdge> rc, GraphicsDecorator g,
-			Layout<FGVertex, FGEdge> layout, FGVertex vertex, Shape compactShape, Shape fullShape) {
+											LayoutModel<FGVertex> layout, FGVertex vertex, Shape compactShape, Shape fullShape) {
 
 		if (isScaledPastVertexPaintingThreshold(rc)) {
 			paintScaledVertex(rc, vertex, g, compactShape);
@@ -93,7 +93,7 @@ public class FGVertexRenderer extends VisualVertexRenderer<FGVertex, FGEdge> {
 
 	@Override
 	protected void paintVertex(RenderContext<FGVertex, FGEdge> rc, GraphicsDecorator g,
-			FGVertex vertex, Rectangle bounds, Layout<FGVertex, FGEdge> layout) {
+			FGVertex vertex, Rectangle bounds, LayoutModel<FGVertex> layout) {
 
 		refreshVertexAsNeeded(vertex);
 

@@ -19,13 +19,17 @@ import java.lang.reflect.Constructor;
 import java.util.HashSet;
 import java.util.Set;
 
-import edu.uci.ics.jung.algorithms.layout.*;
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.graphs.JungDirectedVisualGraph;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
 import ghidra.util.Msg;
+import org.jungrapht.visualization.layout.algorithms.CircleLayoutAlgorithm;
+import org.jungrapht.visualization.layout.algorithms.ISOMLayoutAlgorithm;
+import org.jungrapht.visualization.layout.algorithms.KKLayoutAlgorithm;
+import org.jungrapht.visualization.layout.algorithms.LayoutAlgorithm;
+import org.jungrapht.visualization.layout.algorithms.SpringLayoutAlgorithm;
+import org.jungrapht.visualization.layout.model.LayoutModel;
 import util.CollectionUtils;
 
 /**
@@ -48,10 +52,10 @@ public class JungLayoutProviderFactory {
 		providers.addAll(
 			CollectionUtils.asSet(
 				// create("DAG Layout", DAGLayout.class),
-				create("Circle Layout", CircleLayout.class),
-				create("Spring Layout", SpringLayout.class),
-				create("KK Layout", KKLayout.class),
-				create("ISOM Layout", ISOMLayout.class)		
+				create("Circle Layout", CircleLayoutAlgorithm.Builder.class),
+				create("Spring Layout", SpringLayoutAlgorithm.Builder.class),
+				create("KK Layout", KKLayoutAlgorithm.Builder.class),
+				create("ISOM Layout", ISOMLayoutAlgorithm.Builder.class)
 		));
 		//@formatter:on
 
@@ -64,8 +68,9 @@ public class JungLayoutProviderFactory {
 				   E extends VisualEdge<V>, 
 				   G extends JungDirectedVisualGraph<V, E>> 
 					
-		JungLayoutProvider<V, E, G> create(String name, Class<? extends Layout> layoutClass) {
+		JungLayoutProvider<V, E, G> create(String name, Class<? extends LayoutAlgorithm.Builder> layoutClass) {
 	//@formatter:on
+
 
 		JungLayoutProvider<V, E, G> provider = new JungLayoutProvider<V, E, G>() {
 
@@ -75,17 +80,22 @@ public class JungLayoutProviderFactory {
 			}
 
 			@Override
-			protected Layout<V, E> createLayout(G g) {
+			protected LayoutModel<V> createLayout(G g) {
+				return LayoutModel.<V>builder().graph(g).build();
+			}
+
+			@Override
+			protected LayoutAlgorithm<V> createLayoutAlgorithm() {
 
 				try {
-					Constructor<?> c = layoutClass.getConstructor(Graph.class);
+					Constructor<?> c = layoutClass.getConstructor();
 
 					// we are using the interface to this factory to get compile-time 
 					// enforcement of types; at this point we cannot enforce types using a 
 					// class object to create a new layout
 					@SuppressWarnings("unchecked")
-					Layout<V, E> l = (Layout<V, E>) c.newInstance(g);
-					return l;
+					LayoutAlgorithm.Builder l = (LayoutAlgorithm.Builder) c.newInstance();
+					return l.build();
 				}
 				catch (Exception e) {
 					Msg.error(JungLayoutProviderFactory.class,

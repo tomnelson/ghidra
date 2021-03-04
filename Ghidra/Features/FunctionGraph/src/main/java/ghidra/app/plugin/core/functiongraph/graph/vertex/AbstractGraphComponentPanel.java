@@ -15,13 +15,15 @@
  */
 package ghidra.app.plugin.core.functiongraph.graph.vertex;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 
 import javax.swing.*;
 
-import edu.uci.ics.jung.visualization.VisualizationViewer;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.mvc.FGController;
 import ghidra.app.plugin.core.functiongraph.mvc.FGView;
@@ -29,6 +31,9 @@ import ghidra.app.util.viewer.listingpanel.ListingModel;
 import ghidra.program.model.address.Address;
 import ghidra.program.util.ProgramLocation;
 import ghidra.program.util.ProgramSelection;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
 
 public abstract class AbstractGraphComponentPanel extends JPanel {
 
@@ -76,9 +81,9 @@ public abstract class AbstractGraphComponentPanel extends JPanel {
 	protected void groupVertices() {
 		FGView view = controller.getView();
 		VisualizationViewer<FGVertex, FGEdge> primaryViewer = view.getPrimaryGraphViewer();
-		edu.uci.ics.jung.algorithms.layout.Layout<FGVertex, FGEdge> graphLayout =
-			primaryViewer.getGraphLayout();
-		Point2D location = graphLayout.apply(vertex);
+		LayoutModel<FGVertex> layoutModel =
+			primaryViewer.getVisualizationModel().getLayoutModel();
+		Point location = layoutModel.apply(vertex);
 		controller.groupSelectedVertices(location);
 	}
 

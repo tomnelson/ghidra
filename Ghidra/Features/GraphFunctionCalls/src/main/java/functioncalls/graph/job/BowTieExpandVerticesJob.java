@@ -20,17 +20,17 @@ import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.*;
+import java.util.function.Function;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.RenderContext;
 import functioncalls.graph.*;
 import functioncalls.graph.layout.BowTieLayout;
 import ghidra.graph.job.AbstractGraphTransitionJob;
 import ghidra.graph.viewer.GraphViewer;
 import ghidra.graph.viewer.GraphViewerUtils;
 import ghidra.util.Msg;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * A graph job to layout a given set of graph vertices.  Most of the work for this class is
@@ -38,7 +38,7 @@ import ghidra.util.Msg;
  * 
  * <P>This class is handed a group of edges to processes.  In this group there are vertices that
  * do not need to be arranged, referred to as the <tt>existing</tt> vertices.  This 
- * classes uses {@link VertexCollection} to find and store the new vertices that need
+ * classes uses VertexCollection to find and store the new vertices that need
  * to be arranged. 
  */
 public class BowTieExpandVerticesJob extends AbstractGraphTransitionJob<FcgVertex, FcgEdge> {
@@ -137,7 +137,7 @@ public class BowTieExpandVerticesJob extends AbstractGraphTransitionJob<FcgVerte
 	private Map<FcgVertex, TransitionPoints> createDestinationLocation() {
 
 		// note: both collections of vertices are sorted
-		Map<FcgVertex, Point2D> finalDestinations = arrangeNewVertices();
+		Map<FcgVertex, Point> finalDestinations = arrangeNewVertices();
 
 		Map<FcgVertex, TransitionPoints> transitions = new HashMap<>();
 		FcgLevel parentLevel = expandingLevel.parent();
@@ -163,17 +163,18 @@ public class BowTieExpandVerticesJob extends AbstractGraphTransitionJob<FcgVerte
 				continue;
 			}
 
-			Point2D start = (Point2D) toLocation(existingVertex).clone();
-			Point2D end = finalDestinations.get(newVertex);
+			Point sp = toLocation(existingVertex);
+			Point start = sp;
+			Point end = finalDestinations.get(newVertex);
 
-			TransitionPoints trans = new TransitionPoints(start, end);
+			TransitionPoints trans = new TransitionPoints(start, Point.of(end.x, end.y));
 			transitions.put(newVertex, trans);
 		}
 
 		return transitions;
 	}
 
-	private Map<FcgVertex, Point2D> arrangeNewVertices() {
+	private Map<FcgVertex, Point> arrangeNewVertices() {
 
 		/*
 		 	Add the new row above (or below) the existing row that is being expanded.  So,
@@ -230,14 +231,14 @@ public class BowTieExpandVerticesJob extends AbstractGraphTransitionJob<FcgVerte
 		Msg.trace(this, "new row bounds " +
 			new Rectangle2D.Double(newRowX, newRowY, newRowWidth, newRowHeight));
 
-		Map<FcgVertex, Point2D> locations = getExistingLocations(allLevelVertices);
+		Map<FcgVertex, Point> locations = getExistingLocations(allLevelVertices);
 		if (!locations.isEmpty()) {
 			// use the existing locations so that the nodes appear where the user expects
 			return locations;
 		}
 
 		RenderContext<FcgVertex, FcgEdge> renderContext = viewer.getRenderContext();
-		Function<? super FcgVertex, Shape> shaper = renderContext.getVertexShapeTransformer();
+		Function<? super FcgVertex, Shape> shaper = renderContext.getVertexShapeFunction();
 
 		double x = newRowX;
 		double y = newRowY;
@@ -256,7 +257,7 @@ public class BowTieExpandVerticesJob extends AbstractGraphTransitionJob<FcgVerte
 				nextHalf = nextBounds.width / 2;
 			}
 
-			Point2D p = new Point2D.Double(x, y);
+			Point p = Point.of(x, y);
 			locations.put(v, p);
 
 			double vWidth = myHalf + widthPadding + nextHalf;
@@ -298,32 +299,32 @@ public class BowTieExpandVerticesJob extends AbstractGraphTransitionJob<FcgVerte
 		return padding;
 	}
 
-	private Map<FcgVertex, Point2D> getExistingLocations(List<FcgVertex> vertices) {
+	private Map<FcgVertex, Point> getExistingLocations(List<FcgVertex> vertices) {
 
-		Map<FcgVertex, Point2D> locations = new HashMap<>();
+		Map<FcgVertex, Point> locations = new HashMap<>();
 		for (FcgVertex v : vertices) {
-			Point2D p = toLocation(v);
-			if (p.getX() == 0 && p.getY() == 0) {
+			Point p = toLocation(v);
+			if (p.x == 0 && p.y == 0) {
 				// no location for this vertex--we have to build them
 				return new HashMap<>();
 			}
-			locations.put(v, (Point2D) p.clone());
+			locations.put(v, p);
 		}
 		return locations;
 	}
 
 	private Rectangle getBounds(List<FcgVertex> vertices) {
 		RenderContext<FcgVertex, FcgEdge> renderContext = viewer.getRenderContext();
-		Function<? super FcgVertex, Shape> shaper = renderContext.getVertexShapeTransformer();
+		Function<? super FcgVertex, Shape> shaper = renderContext.getVertexShapeFunction();
 
-		Layout<FcgVertex, FcgEdge> layout = viewer.getGraphLayout();
+		LayoutModel<FcgVertex> layout = viewer.getVisualizationModel().getLayoutModel();
 
 		Rectangle area = null;
 		for (FcgVertex v : vertices) {
 			Rectangle bounds = shaper.apply(v).getBounds();
-			Point2D loc = layout.apply(v);
-			int x = (int) loc.getX();
-			int y = (int) loc.getY();
+			Point loc = layout.apply(v);
+			int x = (int) loc.x;
+			int y = (int) loc.y;
 			// do we need to compensate for vertex centering (like is done in the default layout)?		
 			//	x -= (bounds.width / 2);
 			//	y -= (bounds.height / 2);
@@ -340,7 +341,7 @@ public class BowTieExpandVerticesJob extends AbstractGraphTransitionJob<FcgVerte
 	private int getWidth(List<FcgVertex> vertices, int widthPadding) {
 
 		RenderContext<FcgVertex, FcgEdge> renderContext = viewer.getRenderContext();
-		Function<? super FcgVertex, Shape> shaper = renderContext.getVertexShapeTransformer();
+		Function<? super FcgVertex, Shape> shaper = renderContext.getVertexShapeFunction();
 
 		int width = 0;
 		for (FcgVertex v : vertices) {
@@ -353,7 +354,7 @@ public class BowTieExpandVerticesJob extends AbstractGraphTransitionJob<FcgVerte
 	private int getHeight(List<FcgVertex> vertices) {
 
 		RenderContext<FcgVertex, FcgEdge> renderContext = viewer.getRenderContext();
-		Function<? super FcgVertex, Shape> shaper = renderContext.getVertexShapeTransformer();
+		Function<? super FcgVertex, Shape> shaper = renderContext.getVertexShapeFunction();
 
 		int height = 0;
 		for (FcgVertex v : vertices) {

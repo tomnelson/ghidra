@@ -20,6 +20,7 @@ import java.util.*;
 
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * An implementation of {@link VisualEdge} that implements the base interface so subclasses 
@@ -38,7 +39,7 @@ public abstract class AbstractVisualEdge<V extends VisualVertex> implements Visu
 	private boolean selected;
 	private double emphasis;
 
-	private List<Point2D> articulations = new ArrayList<>();
+	private List<Point> articulations = new ArrayList<>();
 
 	public AbstractVisualEdge(V start, V end) {
 		this.start = start;
@@ -86,12 +87,12 @@ public abstract class AbstractVisualEdge<V extends VisualVertex> implements Visu
 	}
 
 	@Override
-	public List<Point2D> getArticulationPoints() {
+	public List<Point> getArticulationPoints() {
 		return Collections.unmodifiableList(articulations);
 	}
 
 	@Override
-	public void setArticulationPoints(List<Point2D> points) {
+	public void setArticulationPoints(List<Point> points) {
 		this.articulations = new ArrayList<>(points);
 	}
 

@@ -15,17 +15,16 @@
  */
 package ghidra.graph.viewer.renderer;
 
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.transform.shape.GraphicsDecorator;
+
 import java.awt.*;
 import java.awt.geom.Rectangle2D;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.SwingUtilities;
 
-import edu.uci.ics.jung.visualization.VisualizationServer;
-import edu.uci.ics.jung.visualization.VisualizationServer.Paintable;
-import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
-
-public class DebugShape<V, E> implements Paintable {
+public class DebugShape<V, E> implements VisualizationServer.Paintable {
 
 	private Shape shape;
 	private Color color;

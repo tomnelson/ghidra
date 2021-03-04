@@ -29,7 +29,6 @@ import docking.menu.ActionState;
 import docking.menu.MultiStateDockingAction;
 import docking.widgets.EventTrigger;
 import docking.widgets.OptionDialog;
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.events.ProgramSelectionPluginEvent;
 import ghidra.app.plugin.core.functiongraph.action.*;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
@@ -48,6 +47,7 @@ import ghidra.program.model.listing.Function;
 import ghidra.program.util.ProgramLocation;
 import ghidra.program.util.ProgramSelection;
 import ghidra.util.*;
+import org.jgrapht.Graph;
 import resources.Icons;
 import resources.ResourceManager;
 
@@ -790,7 +790,7 @@ class FGActionManager {
 						FGData functionGraphData = controller.getFunctionGraphData();
 						FunctionGraph functionGraph = functionGraphData.getFunctionGraph();
 						Graph<FGVertex, FGEdge> graph = functionGraph;
-						addresses = getAddressesForVertices(graph.getVertices());
+						addresses = getAddressesForVertices(graph.vertexSet());
 					}
 
 					makeSelectionFromAddresses(addresses);
@@ -1100,7 +1100,7 @@ class FGActionManager {
 		FGData functionGraphData = controller.getFunctionGraphData();
 		FunctionGraph functionGraph = functionGraphData.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		return new HashSet<>(graph.getVertices());
+		return new HashSet<>(graph.vertexSet());
 	}
 
 	private Set<GroupedFunctionGraphVertex> getGroupVertices(Set<FGVertex> vertices) {

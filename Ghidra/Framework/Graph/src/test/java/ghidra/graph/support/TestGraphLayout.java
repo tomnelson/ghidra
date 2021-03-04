@@ -15,25 +15,25 @@
  */
 package ghidra.graph.support;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import ghidra.graph.VisualGraph;
-import ghidra.graph.graphs.TestEdge;
 import ghidra.graph.graphs.AbstractTestVertex;
+import ghidra.graph.graphs.TestEdge;
 import ghidra.graph.viewer.layout.JungWrappingVisualGraphLayoutAdapter;
+import org.jungrapht.visualization.layout.model.LayoutModel;
 
 /**
  * A graph layout used for testing.
  */
 public class TestGraphLayout extends JungWrappingVisualGraphLayoutAdapter<AbstractTestVertex, TestEdge> {
 
-	public TestGraphLayout(Layout<AbstractTestVertex, TestEdge> jungLayout) {
+	public TestGraphLayout(LayoutModel<AbstractTestVertex> jungLayout) {
 		super(jungLayout);
 	}
 
 	@Override
 	public TestGraphLayout cloneLayout(VisualGraph<AbstractTestVertex, TestEdge> newGraph) {
 
-		Layout<AbstractTestVertex, TestEdge> newJungLayout = cloneJungLayout(newGraph);
+		LayoutModel<AbstractTestVertex> newJungLayout = cloneJungLayout(newGraph);
 		return new TestGraphLayout(newJungLayout);
 	}
 }

@@ -19,13 +19,14 @@ import java.util.Objects;
 
 import javax.swing.Icon;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.graphs.JungDirectedVisualGraph;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jungrapht.visualization.layout.algorithms.LayoutAlgorithm;
+import org.jungrapht.visualization.layout.model.LayoutModel;
 import resources.ResourceManager;
 
 /**
@@ -45,14 +46,16 @@ public abstract class JungLayoutProvider<V extends VisualVertex,
 
 	private static final Icon DEFAULT_ICON = ResourceManager.loadImage("images/color_swatch.png");
 
-	protected abstract Layout<V, E> createLayout(G g);
+	protected abstract LayoutModel<V> createLayout(G g);
+
+	protected abstract LayoutAlgorithm<V> createLayoutAlgorithm();
 
 	@Override
 	public VisualGraphLayout<V, E> getLayout(G g, TaskMonitor monitor) throws CancelledException {
 
 		Objects.requireNonNull(g);
 
-		Layout<V, E> jungLayout = createLayout(g);
+		LayoutModel<V> jungLayout = createLayout(g);
 
 		initVertexLocations(g, jungLayout);
 

@@ -17,13 +17,13 @@ package functioncalls.graph.view;
 
 import java.awt.Color;
 
-import edu.uci.ics.jung.visualization.RenderContext;
 import functioncalls.graph.*;
 import functioncalls.graph.renderer.FcgEdgePaintTransformer;
 import functioncalls.graph.renderer.FcgVertexPaintTransformer;
 import functioncalls.plugin.FunctionCallGraphPlugin;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.layout.VisualGraphLayout;
+import org.jungrapht.visualization.RenderContext;
 
 /**
  * A graph component for the {@link FunctionCallGraphPlugin}
@@ -66,14 +66,14 @@ public class FcgComponent extends GraphComponent<FcgVertex, FcgEdge, FunctionCal
 		super.decoratePrimaryViewer(viewer, layout);
 
 		RenderContext<FcgVertex, FcgEdge> renderContext = viewer.getRenderContext();
-		renderContext.setVertexFillPaintTransformer(vertexPaintTransformer);
+		renderContext.setVertexFillPaintFunction(vertexPaintTransformer);
 
 		// Note: setting the fill for the edges has the effect of drawing a filled-in circle
 		//       instead of just the outer edge.
 		// renderContext.setEdgeFillPaintTransformer(edgePaintTransformer);
-		renderContext.setEdgeDrawPaintTransformer(edgePaintTransformer);
-		renderContext.setArrowFillPaintTransformer(edgePaintTransformer);
-		renderContext.setArrowDrawPaintTransformer(edgePaintTransformer);
+		renderContext.setEdgeDrawPaintFunction(edgePaintTransformer);
+		renderContext.setArrowFillPaintFunction(edgePaintTransformer);
+		renderContext.setArrowDrawPaintFunction(edgePaintTransformer);
 
 	}
 
@@ -84,11 +84,11 @@ public class FcgComponent extends GraphComponent<FcgVertex, FcgEdge, FunctionCal
 		super.decorateSatelliteViewer(viewer, layout);
 
 		RenderContext<FcgVertex, FcgEdge> renderContext = viewer.getRenderContext();
-		renderContext.setVertexFillPaintTransformer(vertexPaintTransformer);
+		renderContext.setVertexFillPaintFunction(vertexPaintTransformer);
 		//renderContext.setEdgeFillPaintTransformer(satelliteEdgePaintTransformer);
-		renderContext.setEdgeDrawPaintTransformer(satelliteEdgePaintTransformer);
-		renderContext.setArrowFillPaintTransformer(satelliteEdgePaintTransformer);
-		renderContext.setArrowDrawPaintTransformer(satelliteEdgePaintTransformer);
+		renderContext.setEdgeDrawPaintFunction(satelliteEdgePaintTransformer);
+		renderContext.setArrowFillPaintFunction(satelliteEdgePaintTransformer);
+		renderContext.setArrowDrawPaintFunction(satelliteEdgePaintTransformer);
 	}
 
 	@Override

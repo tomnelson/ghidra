@@ -15,12 +15,13 @@
  */
 package ghidra.graph.viewer.edge;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.algorithms.layout.LayoutDecorator;
-import edu.uci.ics.jung.visualization.RenderContext;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
 import ghidra.graph.viewer.layout.VisualGraphLayout;
+import org.apache.logging.log4j.core.Layout;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationModel;
+import org.jungrapht.visualization.layout.model.LayoutModel;
 
 /**
  * A class to override the default edge label placement.   This class is called a renderer because
@@ -33,10 +34,10 @@ import ghidra.graph.viewer.layout.VisualGraphLayout;
  * time, like we do with the other rendering classes, but not such method is provided.
  */
 public class BasicEdgeLabelRenderer<V extends VisualVertex, E extends VisualEdge<V>>
-		extends edu.uci.ics.jung.visualization.renderers.BasicEdgeLabelRenderer<V, E> {
+		extends org.jungrapht.visualization.renderers.HeayweightEdgeLabelRenderer<V, E> {
 
 	@Override
-	public void labelEdge(RenderContext<V, E> rc, Layout<V, E> layout, E e, String label) {
+	public void labelEdge(RenderContext<V, E> rc, LayoutModel<V> layoutModel, E e, String label) {
 
 		// TODO delete this class
 
@@ -50,14 +51,14 @@ public class BasicEdgeLabelRenderer<V extends VisualVertex, E extends VisualEdge
 //			}
 //		}
 
-		super.labelEdge(rc, layout, e, label);
+		super.labelEdge(rc, layoutModel, e, label);
 	}
 
-	private VisualGraphLayout<V, E> getFunctionGraphLayout(Layout<V, E> layout) {
-		if (layout instanceof LayoutDecorator) {
-			LayoutDecorator<V, E> layoutDecorator = (LayoutDecorator<V, E>) layout;
-			layout = layoutDecorator.getDelegate();
-		}
+	private VisualGraphLayout<V, E> getFunctionGraphLayout(LayoutModel<V> layout) {
+//		if (layout instanceof LayoutDecorator) {
+//			LayoutDecorator<V, E> layoutDecorator = (LayoutDecorator<V, E>) layout;
+//			layout = layoutDecorator.getDelegate();
+//		}
 
 		if (layout instanceof VisualGraphLayout) {
 			return (VisualGraphLayout<V, E>) layout;

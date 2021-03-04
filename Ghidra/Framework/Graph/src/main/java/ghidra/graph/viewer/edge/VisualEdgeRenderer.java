@@ -15,31 +15,41 @@
  */
 package ghidra.graph.viewer.edge;
 
-import java.awt.*;
+import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.Stroke;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
+import java.util.function.Function;
 
 import javax.swing.JComponent;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.util.Context;
-import edu.uci.ics.jung.graph.util.Pair;
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.renderers.*;
-import edu.uci.ics.jung.visualization.transform.LensTransformer;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
-import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
-import edu.uci.ics.jung.visualization.util.VertexShapeFactory;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
 import ghidra.graph.viewer.layout.AbstractVisualGraphLayout;
 import ghidra.graph.viewer.vertex.VertexShapeProvider;
 import ghidra.graph.viewer.vertex.VisualGraphVertexShapeTransformer;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationModel;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.renderers.DefaultEdgeArrowRenderingSupport;
+import org.jungrapht.visualization.renderers.EdgeArrowRenderingSupport;
+import org.jungrapht.visualization.renderers.HeavyweightEdgeRenderer;
+import org.jungrapht.visualization.transform.LensTransformer;
+import org.jungrapht.visualization.transform.MutableTransformer;
+import org.jungrapht.visualization.transform.shape.GraphicsDecorator;
+
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 /**
  * Edge render for the {@link VisualGraph} system
@@ -79,7 +89,7 @@ import ghidra.graph.viewer.vertex.VisualGraphVertexShapeTransformer;
  * @param <E> the edge type
  */
 public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends VisualEdge<V>>
-		extends BasicEdgeRenderer<V, E> {
+		extends HeavyweightEdgeRenderer<V, E> {
 
 	private static final float HOVERED_PATH_STROKE_WIDTH = 8.0f;
 	private static final float FOCUSED_PATH_STROKE_WIDTH = 4.0f;
@@ -140,7 +150,7 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 	}
 
 	@Override
-	public void drawSimpleEdge(RenderContext<V, E> rc, Layout<V, E> layout, E e) {
+	public void drawSimpleEdge(RenderContext<V, E> rc, LayoutModel<V> layoutModel, E e) {
 
 		GraphicsDecorator gDecorator = rc.getGraphicsContext();
 		Graphics2D graphicsCopy = (Graphics2D) gDecorator.create();
@@ -152,10 +162,9 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 				AlphaComposite.getInstance(AlphaComposite.SrcOver.getRule(), (float) alpha));
 		}
 
-		Graph<V, E> graph = layout.getGraph();
-		Pair<V> endpoints = graph.getEndpoints(e);
-		V v1 = endpoints.getFirst();
-		V v2 = endpoints.getSecond();
+		Graph<V, E> graph = layoutModel.getGraph();
+		V v1 = graph.getEdgeSource(e);
+		V v2 = graph.getEdgeTarget(e);
 		float scalex = (float) g.getTransform().getScaleX();
 		float scaley = (float) g.getTransform().getScaleY();
 
@@ -173,15 +182,15 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 
 		float scale = StrictMath.min(scalex, scaley);
 
-		Point2D p1 = layout.apply(v1);
-		Point2D p2 = layout.apply(v2);
+		Point p1 = layoutModel.apply(v1);
+		Point p2 = layoutModel.apply(v2);
 		MultiLayerTransformer multiLayerTransformer = rc.getMultiLayerTransformer();
-		p1 = multiLayerTransformer.transform(Layer.LAYOUT, p1);
-		p2 = multiLayerTransformer.transform(Layer.LAYOUT, p2);
-		float x1 = (float) p1.getX();
-		float y1 = (float) p1.getY();
-		float x2 = (float) p2.getX();
-		float y2 = (float) p2.getY();
+		Point2D p2d1 = multiLayerTransformer.transform(Layer.LAYOUT, p1.x, p1.y);
+		Point2D p2d2 = multiLayerTransformer.transform(Layer.LAYOUT, p2.x, p2.y);
+		float x1 = (float) p1.x;
+		float y1 = (float) p1.y;
+		float x2 = (float) p2.x;
+		float y2 = (float) p2.y;
 
 		boolean isLoop = v1.equals(v2);
 		Rectangle deviceRectangle = null;
@@ -191,7 +200,7 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 			deviceRectangle = new Rectangle(0, 0, d.width, d.height);
 		}
 
-		Shape vs1 = getCompactShape(rc, layout, v1);
+		Shape vs1 = getCompactShape(rc, layoutModel, v1);
 		Shape edgeShape = getEdgeShape(rc, graph, e, x1, y1, x2, y2, isLoop, vs1);
 
 		MutableTransformer vt = multiLayerTransformer.getTransformer(Layer.VIEW);
@@ -199,7 +208,6 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 			vt = ((LensTransformer) vt).getDelegate();
 		}
 
-		Context<Graph<V, E>, E> context = Context.<Graph<V, E>, E> getInstance(graph, e);
 		boolean edgeHit = vt.transform(edgeShape).intersects(deviceRectangle);
 		if (!edgeHit) {
 			return;
@@ -218,7 +226,7 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 		//
 		// Fill
 		// 
-		Paint fillPaint = rc.getEdgeFillPaintTransformer().apply(e);
+		Paint fillPaint = rc.getEdgeFillPaintFunction().apply(e);
 		if (fillPaint != null) {
 			// basic shape
 			g.setPaint(fillPaint);
@@ -264,7 +272,7 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 		//
 		// Draw
 		//
-		Paint drawPaint = rc.getEdgeDrawPaintTransformer().apply(e);
+		Paint drawPaint = rc.getEdgeDrawPaintFunction().apply(e);
 		if (drawPaint != null) {
 			// basic shape
 			g.setPaint(drawPaint);
@@ -316,20 +324,20 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 		//
 		// Arrow Head
 		//
-		Predicate<Context<Graph<V, E>, E>> predicate = rc.getEdgeArrowPredicate();
-		boolean drawArrow = predicate.apply(context);
-		if (!drawArrow) {
-			g.setPaint(oldPaint);
-			return;
-		}
+//		Predicate<Context<Graph<V, E>, E>> predicate = rc.getEdgeA
+//		boolean drawArrow = predicate.test(context);
+//		if (!drawArrow) {
+//			g.setPaint(oldPaint);
+//			return;
+//		}
 
-		Stroke arrowStroke = rc.getEdgeArrowStrokeTransformer().apply(e);
+		Stroke arrowStroke = rc.getEdgeArrowStrokeFunction().apply(e);
 		Stroke oldArrowStroke = g.getStroke();
 		if (arrowStroke != null) {
 			g.setStroke(arrowStroke);
 		}
 
-		Shape vs2 = getVertexShapeForArrow(rc, layout, v2);	// end vertex
+		Shape vs2 = getVertexShapeForArrow(rc, layoutModel, v2);	// end vertex
 		boolean arrowHit = vt.transform(vs2).intersects(deviceRectangle);
 		if (!arrowHit) {
 			g.setPaint(oldPaint);
@@ -337,7 +345,7 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 		}
 
 		EdgeArrowRenderingSupport<V, E> arrowRenderingSupport =
-			new BasicEdgeArrowRenderingSupport<>();
+			new DefaultEdgeArrowRenderingSupport<>();
 		AffineTransform at = arrowRenderingSupport.getArrowTransform(rc, edgeShape, vs2);
 		if (at == null) {
 			g.setPaint(oldPaint);
@@ -345,9 +353,10 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 			return;
 		}
 
-		Paint arrowFillPaint = rc.getArrowFillPaintTransformer().apply(e);
-		Paint arrowDrawPaint = rc.getArrowDrawPaintTransformer().apply(e);
-		Shape arrow = rc.getEdgeArrowTransformer().apply(context);
+		Paint arrowFillPaint = rc.getArrowFillPaintFunction().apply(e);
+		Paint arrowDrawPaint = rc.getArrowDrawPaintFunction().apply(e);
+		Shape arrow = rc.getEdgeArrow();
+//				getEdgeArrowFunction().apply(context);
 		arrow = scaleArrowForBetterVisibility(rc, arrow);
 		arrow = at.createTransformedShape(arrow);
 
@@ -396,7 +405,7 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 		g.setPaint(oldPaint);
 	}
 
-	protected Shape getVertexShapeForArrow(RenderContext<V, E> rc, Layout<V, E> layout, V v) {
+	protected Shape getVertexShapeForArrow(RenderContext<V, E> rc, LayoutModel<V> layout, V v) {
 		// we use the default shape (the full shape) for arrow detection
 		return getFullShape(rc, layout, v);
 	}
@@ -471,8 +480,8 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 	 * @return the vertex shape
 	 * @see VertexShapeProvider#getFullShape()
 	 */
-	public Shape getFullShape(RenderContext<V, E> rc, Layout<V, E> layout, V vertex) {
-		Function<? super V, Shape> vertexShaper = rc.getVertexShapeTransformer();
+	public Shape getFullShape(RenderContext<V, E> rc, LayoutModel<V> layout, V vertex) {
+		Function<? super V, Shape> vertexShaper = rc.getVertexShapeFunction();
 		Shape shape = null;
 		if (vertexShaper instanceof VisualGraphVertexShapeTransformer) {
 			@SuppressWarnings("unchecked")
@@ -498,9 +507,9 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 	 * @return the vertex shape
 	 * @see VertexShapeProvider#getCompactShape()
 	 */
-	protected Shape getCompactShape(RenderContext<V, E> rc, Layout<V, E> layout, V vertex) {
+	protected Shape getCompactShape(RenderContext<V, E> rc, LayoutModel<V> layout, V vertex) {
 
-		Function<? super V, Shape> vertexShaper = rc.getVertexShapeTransformer();
+		Function<? super V, Shape> vertexShaper = rc.getVertexShapeFunction();
 		Shape shape = null;
 		if (vertexShaper instanceof VisualGraphVertexShapeTransformer) {
 			@SuppressWarnings("unchecked")
@@ -517,14 +526,14 @@ public abstract class VisualEdgeRenderer<V extends VisualVertex, E extends Visua
 		return transformFromLayoutToView(rc, layout, vertex, shape);
 	}
 
-	protected Shape transformFromLayoutToView(RenderContext<V, E> rc, Layout<V, E> layout, V vertex,
+	protected Shape transformFromLayoutToView(RenderContext<V, E> rc, LayoutModel<V> layout, V vertex,
 			Shape shape) {
 
-		Point2D p = layout.apply(vertex);
+		Point p = layout.apply(vertex);
 		MultiLayerTransformer multiLayerTransformer = rc.getMultiLayerTransformer();
-		p = multiLayerTransformer.transform(Layer.LAYOUT, p);
-		float x = (float) p.getX();
-		float y = (float) p.getY();
+		Point2D p2d = multiLayerTransformer.transform(Layer.LAYOUT, p.x, p.y);
+		float x = (float) p2d.getX();
+		float y = (float) p2d.getY();
 
 		// create a transform that translates to the location of
 		// the vertex to be rendered

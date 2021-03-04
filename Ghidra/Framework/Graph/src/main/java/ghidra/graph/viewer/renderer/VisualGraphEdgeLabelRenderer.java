@@ -15,17 +15,18 @@
  */
 package ghidra.graph.viewer.renderer;
 
+import org.jungrapht.visualization.renderers.EdgeLabelRenderer;
+import org.jungrapht.visualization.renderers.JLabelEdgeLabelRenderer;
+
 import java.awt.*;
 
 import javax.swing.JComponent;
 
-import edu.uci.ics.jung.visualization.renderers.DefaultEdgeLabelRenderer;
-
 /**
- * Overrides the {@link DefaultEdgeLabelRenderer} so that the client can set the non-picked
+ * Overrides the {@link JLabelEdgeLabelRenderer} so that the client can set the non-picked
  * foreground color.  See {@link #setNonPickedForegroundColor(Color)}.
  */
-public class VisualGraphEdgeLabelRenderer extends DefaultEdgeLabelRenderer {
+public class VisualGraphEdgeLabelRenderer extends JLabelEdgeLabelRenderer {
 
 	private Color nonPickedForegroundColor;
 

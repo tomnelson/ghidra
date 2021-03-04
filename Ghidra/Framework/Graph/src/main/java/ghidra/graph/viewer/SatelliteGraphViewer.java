@@ -17,12 +17,15 @@ package ghidra.graph.viewer;
 
 import java.awt.Dimension;
 
-import edu.uci.ics.jung.visualization.control.SatelliteVisualizationViewer;
-import edu.uci.ics.jung.visualization.renderers.Renderer;
 import ghidra.graph.viewer.event.mouse.VisualGraphPluggableGraphMouse;
 import ghidra.graph.viewer.event.mouse.VisualGraphSatelliteGraphMouse;
 import ghidra.graph.viewer.renderer.VisualGraphRenderer;
 import ghidra.graph.viewer.renderer.VisualVertexSatelliteRenderer;
+import org.jungrapht.visualization.AbstractSatelliteVisualizationViewer;
+import org.jungrapht.visualization.DefaultSatelliteVisualizationViewer;
+import org.jungrapht.visualization.SatelliteVisualizationViewer;
+import org.jungrapht.visualization.renderers.BiModalRenderer;
+import org.jungrapht.visualization.renderers.Renderer;
 
 /**
  * A graph viewer that shows a scaled, complete rendering of the graph with which it is 
@@ -32,15 +35,16 @@ import ghidra.graph.viewer.renderer.VisualVertexSatelliteRenderer;
  * @param <E> the edge type
  */
 public class SatelliteGraphViewer<V extends VisualVertex, E extends VisualEdge<V>>
-		extends SatelliteVisualizationViewer<V, E> {
+		extends AbstractSatelliteVisualizationViewer<V, E> {
 
 	protected GraphViewer<V, E> graphViewer;
 	private boolean docked;
 
 	public SatelliteGraphViewer(GraphViewer<V, E> master, Dimension preferredSize) {
-		super(master, preferredSize);
+		super(SatelliteVisualizationViewer.builder(master).viewSize(preferredSize));
 		this.graphViewer = master;
-		setRenderer(new VisualGraphRenderer<>(null));
+		getRenderer().setRenderer(BiModalRenderer.HEAVYWEIGHT,
+				new VisualGraphRenderer<>(getComponent(),null));
 
 		setGraphMouse(new VisualGraphSatelliteGraphMouse<>());
 	}

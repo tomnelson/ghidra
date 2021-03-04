@@ -24,9 +24,6 @@ import java.util.function.Supplier;
 import javax.swing.*;
 
 import docking.widgets.label.GDLabel;
-import edu.uci.ics.jung.visualization.RenderContext;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.ScalingControl;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.event.mouse.VertexTooltipProvider;
 import ghidra.graph.viewer.event.mouse.VisualGraphMousePlugin;
@@ -34,6 +31,9 @@ import ghidra.graph.viewer.layout.LayoutProvider;
 import ghidra.graph.viewer.options.VisualGraphOptions;
 import ghidra.graph.viewer.vertex.VertexClickListener;
 import ghidra.graph.viewer.vertex.VertexFocusListener;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.control.ScalingControl;
 
 /**
  * A view object, where 'view' is used in the sense of the Model-View-Controller (MVC) pattern.
@@ -315,6 +315,7 @@ public class VisualGraphView<V extends VisualVertex,
 	}
 
 	public GraphPerspectiveInfo<V, E> generateGraphPerspective() {
+
 		RenderContext<V, E> context = graphComponent.getRenderContext();
 		return new GraphPerspectiveInfo<>(context, getZoom());
 	}
@@ -522,7 +523,7 @@ public class VisualGraphView<V extends VisualVertex,
 	public MouseEvent translateMouseEventFromVertexToViewSpace(V v, MouseEvent e) {
 		Point viewerPoint = translatePointFromVertexToViewSpace(v, e.getPoint());
 		VisualizationViewer<V, E> newSource = getPrimaryGraphViewer();
-		return new MouseEvent(newSource, e.getID(), e.getWhen(), e.getModifiers(),
+		return new MouseEvent(newSource.getComponent(), e.getID(), e.getWhen(), e.getModifiers(),
 			(int) viewerPoint.getX(), (int) viewerPoint.getY(), e.getClickCount(),
 			e.isPopupTrigger(), e.getButton());
 	}

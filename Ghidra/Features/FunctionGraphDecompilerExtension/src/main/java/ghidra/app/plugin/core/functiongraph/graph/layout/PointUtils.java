@@ -13,26 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package ghidra.graph.job;
+package ghidra.app.plugin.core.functiongraph.graph.layout;
 
-import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.layout.model.Point;
 
 import java.awt.geom.Point2D;
 
-public class MoveViewToLayoutSpacePointAnimatorFunctionGraphJob<V, E> extends
-		MoveViewAnimatorFunctionGraphJob<V, E> {
+public class PointUtils {
 
-	private final Point2D layoutSpacePoint;
+    // convert from Point to Point2D
 
-	public MoveViewToLayoutSpacePointAnimatorFunctionGraphJob(VisualizationServer<V, E> viewer,
-															  Point2D layoutSpacePoint, boolean useAnimation) {
-		super(viewer, useAnimation);
-		this.layoutSpacePoint = layoutSpacePoint;
+    public static Point2D convert(Point p) {
+        return new Point2D.Double(p.x, p.y);
+    }
 
-	}
-
-	@Override
-	protected Point2D createDestination() {
-		return layoutSpacePoint;
-	}
+    public static Point convert(Point2D p2d) {
+        return Point.of(p2d.getX(), p2d.getY());
+    }
 }

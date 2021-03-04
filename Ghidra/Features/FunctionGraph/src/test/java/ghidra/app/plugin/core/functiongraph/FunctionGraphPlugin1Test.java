@@ -18,7 +18,10 @@ package ghidra.app.plugin.core.functiongraph;
 import static ghidra.graph.viewer.GraphViewerUtils.*;
 import static org.junit.Assert.*;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Rectangle;
+import java.awt.Window;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.Transferable;
 import java.awt.geom.Point2D;
@@ -26,6 +29,12 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.jungrapht.visualization.VisualizationModel;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.layout.util.Caching;
+import org.jungrapht.visualization.util.PointUtils;
 import org.junit.*;
 
 import docking.ActionContext;
@@ -274,10 +283,10 @@ public class FunctionGraphPlugin1Test extends AbstractFunctionGraphTest {
 		double dx = originalPoint.getX() + 100;
 		double dy = originalPoint.getY() + 100;
 
-		Point2D newPoint = new Point2D.Double(dx, dy);
-		final Layout<FGVertex, FGEdge> primaryLayout = getPrimaryLayout();
-		final Point2D finalNewPoint = newPoint;
-		runSwing(() -> primaryLayout.setLocation(rootVertex, finalNewPoint));
+		Point newPoint = Point.of(dx, dy);
+		final LayoutModel<FGVertex> primaryLayout = getPrimaryLayout();
+		final Point finalNewPoint = newPoint;
+		runSwing(() -> primaryLayout.set(rootVertex, finalNewPoint));
 
 		// we have to wait for the paint to take place, as the rendering will change the vertex
 		// locations
@@ -531,16 +540,16 @@ public class FunctionGraphPlugin1Test extends AbstractFunctionGraphTest {
 		FGData functionGraphData = getFunctionGraphData();
 		FunctionGraph functionGraph = functionGraphData.getFunctionGraph();
 		VisualizationViewer<FGVertex, FGEdge> primaryGraphViewer = view.getPrimaryGraphViewer();
-		VisualizationModel<FGVertex, FGEdge> model = primaryGraphViewer.getModel();
-		final Layout<FGVertex, FGEdge> graphLayout = model.getGraphLayout();
+		VisualizationModel<FGVertex, FGEdge> model = primaryGraphViewer.getVisualizationModel();
+		final LayoutModel<FGVertex> graphLayout = model.getLayoutModel();
 		final FGVertex vertex = functionGraph.getRootVertex();
-		final Point2D startPoint = graphLayout.apply(vertex);
+		final Point startPoint = graphLayout.apply(vertex);
 
-		final Point2D newPoint = new Point2D.Double(startPoint.getX() + 2000, startPoint.getY());
+		final Point newPoint = Point.of(startPoint.x + 2000, startPoint.y);
 		runSwing(() -> {
 			Caching cachingLayout = (Caching) graphLayout;
 			cachingLayout.clear();
-			graphLayout.setLocation(vertex, newPoint);
+			graphLayout.set(vertex, newPoint);
 		});
 		waitForSwing();
 
@@ -551,7 +560,7 @@ public class FunctionGraphPlugin1Test extends AbstractFunctionGraphTest {
 		runSwing(() -> {
 			Caching cachingLayout = (Caching) graphLayout;
 			cachingLayout.clear();
-			graphLayout.setLocation(vertex, startPoint);
+			graphLayout.set(vertex, startPoint);
 		});
 		waitForSwing();
 
@@ -914,10 +923,10 @@ public class FunctionGraphPlugin1Test extends AbstractFunctionGraphTest {
 		double dx = originalPoint.getX() + 100;
 		double dy = originalPoint.getY() + 100;
 
-		Point2D newPoint = new Point2D.Double(dx, dy);
-		final Layout<FGVertex, FGEdge> primaryLayout = getPrimaryLayout();
-		final Point2D finalNewPoint = newPoint;
-		runSwing(() -> primaryLayout.setLocation(rootVertex, finalNewPoint));
+		Point newPoint = Point.of(dx, dy);
+		final LayoutModel<FGVertex> primaryLayout = getPrimaryLayout();
+		final Point finalNewPoint = newPoint;
+		runSwing(() -> primaryLayout.set(rootVertex, finalNewPoint));
 
 		assertEquals("Vertex location not correctly set", newPoint, rootVertex.getLocation());
 
@@ -955,8 +964,7 @@ public class FunctionGraphPlugin1Test extends AbstractFunctionGraphTest {
 		assertTrue(
 			"Vertex location not restored to default after performing a relayout " +
 				"original point: " + originalPoint + " - reloaded point: " + reloadedPoint,
-			pointsAreSimilar(originalPoint, reloadedPoint));
-
+			pointsAreSimilar(PointUtils.convert(originalPoint), PointUtils.convert(reloadedPoint)));
 		//
 		// Make sure the CodeBrowser's location matches ours after the relayout (the location should
 		// get broadcast to the CodeBrowser)

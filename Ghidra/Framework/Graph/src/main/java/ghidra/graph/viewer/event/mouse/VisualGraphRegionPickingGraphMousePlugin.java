@@ -15,6 +15,24 @@
  */
 package ghidra.graph.viewer.event.mouse;
 
+import docking.DockingUtils;
+import ghidra.graph.viewer.GraphViewer;
+import ghidra.graph.viewer.GraphViewerUtils;
+import ghidra.graph.viewer.VisualEdge;
+import ghidra.graph.viewer.VisualGraphViewUpdater;
+import ghidra.graph.viewer.VisualVertex;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.control.GraphElementAccessor;
+import org.jungrapht.visualization.control.RegionSelectingGraphMousePlugin;
+import org.jungrapht.visualization.control.SelectingGraphMousePlugin;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.selection.MutableSelectedState;
+import org.jungrapht.visualization.selection.SelectedState;
+
 import java.awt.Cursor;
 import java.awt.Rectangle;
 import java.awt.event.InputEvent;
@@ -23,36 +41,24 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
 
-import docking.DockingUtils;
-import ghidra.graph.viewer.*;
-import org.jgrapht.Graph;
-import org.jungrapht.visualization.MultiLayerTransformer;
-import org.jungrapht.visualization.RenderContext;
-import org.jungrapht.visualization.VisualizationViewer;
-import org.jungrapht.visualization.control.GraphElementAccessor;
-import org.jungrapht.visualization.control.SelectingGraphMousePlugin;
-import org.jungrapht.visualization.layout.model.LayoutModel;
-import org.jungrapht.visualization.layout.model.Point;
-import org.jungrapht.visualization.selection.MutableSelectedState;
-import org.jungrapht.visualization.selection.SelectedState;
-
-public class VisualGraphPickingGraphMousePlugin<V extends VisualVertex, E extends VisualEdge<V>>
-		extends SelectingGraphMousePlugin<V, E> implements VisualGraphMousePlugin<V, E> {
+public class VisualGraphRegionPickingGraphMousePlugin<V extends VisualVertex, E extends VisualEdge<V>>
+		extends RegionSelectingGraphMousePlugin<V, E> implements VisualGraphMousePlugin<V, E> {
 
 // ALERT: -this class was created because mouseDragged() has a bug that generates a NPE
 //        -also, mousePressed() has a bug in that it does not check the modifiers when the method is entered
 
-	public VisualGraphPickingGraphMousePlugin() {
+	public VisualGraphRegionPickingGraphMousePlugin() {
 //		super(InputEvent.BUTTON1_DOWN_MASK,
 //			InputEvent.BUTTON1_DOWN_MASK | DockingUtils.CONTROL_KEY_MODIFIER_MASK);
 	}
 
 //	@Override
 //	public boolean checkModifiers(MouseEvent e) {
-//		if (e.getModifiersEx() == addToSelectionModifiers) {
+//		if (e.getModifiersEx() == regionSelectionMask ||
+//				e.getModifiersEx() == addRegionSelectionMask) {
 //			return true;
 //		}
-//		return e.getModifiersEx() == modifiers;
+//		return e.getModifiersEx() == regionSelectionMask;
 //	}
 
 //	@Override
@@ -90,29 +96,29 @@ public class VisualGraphPickingGraphMousePlugin<V extends VisualVertex, E extend
 //		}
 //	}
 
-	private void dragVertices(MouseEvent e, GraphViewer<V, E> viewer) {
-
-		java.awt.Point p = e.getPoint();
-		RenderContext<V, E> context = viewer.getRenderContext();
-		MultiLayerTransformer xformer = context.getMultiLayerTransformer();
-		Point2D layoutPoint = xformer.inverseTransform(p);
-		Point2D layoutDown = xformer.inverseTransform(down);
-		LayoutModel<V> layout = viewer.getVisualizationModel().getLayoutModel();
-		double dx = layoutPoint.getX() - layoutDown.getX();
-		double dy = layoutPoint.getY() - layoutDown.getY();
-		SelectedState<V> ps = viewer.getSelectedVertexState();
-
-		for (V v : ps.getSelected()) {
-			Point vertexPoint = layout.apply(v);
-			vertexPoint = vertexPoint.add(0, dy);
-//			vertexPoint.setLocation(vertexPoint.getX() + dx, vertexPoint.getY() + dy);
-			layout.set(v, vertexPoint);
-			updatedArticulatedEdges(viewer, v);
-		}
-
-		down = p;
-		e.consume();
-	}
+//	private void dragVertices(MouseEvent e, GraphViewer<V, E> viewer) {
+//
+//		java.awt.Point p = e.getPoint();
+//		RenderContext<V, E> context = viewer.getRenderContext();
+//		MultiLayerTransformer xformer = context.getMultiLayerTransformer();
+//		Point2D layoutPoint = xformer.inverseTransform(p);
+//		Point2D layoutDown = xformer.inverseTransform(down);
+//		LayoutModel<V> layout = viewer.getVisualizationModel().getLayoutModel();
+//		double dx = layoutPoint.getX() - layoutDown.getX();
+//		double dy = layoutPoint.getY() - layoutDown.getY();
+//		SelectedState<V> ps = viewer.getSelectedVertexState();
+//
+//		for (V v : ps.getSelected()) {
+//			Point vertexPoint = layout.apply(v);
+//			vertexPoint = vertexPoint.add(0, dy);
+////			vertexPoint.setLocation(vertexPoint.getX() + dx, vertexPoint.getY() + dy);
+//			layout.set(v, vertexPoint);
+//			updatedArticulatedEdges(viewer, v);
+//		}
+//
+//		down = p;
+//		e.consume();
+//	}
 
 	private void updatedArticulatedEdges(GraphViewer<V, E> viewer, V v) {
 
@@ -167,10 +173,10 @@ public class VisualGraphPickingGraphMousePlugin<V extends VisualVertex, E extend
 //		super.mouseReleased(e);
 //	}
 
-//	private boolean isDragging() {
-//		Rectangle2D frame = viewRectangle.getBounds().getFrame();
-//		return frame.getHeight() > 0;
-//	}
+	private boolean isDragging() {
+		Rectangle2D frame = viewRectangle.getBounds().getFrame();
+		return frame.getHeight() > 0;
+	}
 
 	@SuppressWarnings("unchecked")
 	private void maybeClearPickedState(MouseEvent event) {

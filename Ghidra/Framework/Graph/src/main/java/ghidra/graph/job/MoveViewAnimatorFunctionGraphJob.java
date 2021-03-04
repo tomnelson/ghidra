@@ -19,8 +19,12 @@ import java.awt.geom.Point2D;
 
 import org.jdesktop.animation.timing.Animator;
 import org.jdesktop.animation.timing.interpolation.PropertySetter;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.VisualizationViewer;
 
-import edu.uci.ics.jung.visualization.*;
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 public abstract class MoveViewAnimatorFunctionGraphJob<V, E>
 		extends AbstractAnimatorJob {
@@ -37,7 +41,7 @@ public abstract class MoveViewAnimatorFunctionGraphJob<V, E>
 	private Point2D destination;
 
 	public MoveViewAnimatorFunctionGraphJob(VisualizationServer<V, E> viewer,
-			boolean useAnimation) {
+											boolean useAnimation) {
 
 		if (!(viewer instanceof VisualizationViewer)) {
 			throw new IllegalArgumentException("VisualizationServer is not an instance of " +

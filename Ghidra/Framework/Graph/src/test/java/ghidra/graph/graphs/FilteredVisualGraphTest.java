@@ -24,8 +24,6 @@ import java.util.Collection;
 import org.junit.Before;
 import org.junit.Test;
 
-import edu.uci.ics.jung.graph.util.EdgeType;
-import edu.uci.ics.jung.graph.util.Pair;
 import ghidra.graph.viewer.layout.VisualGraphLayout;
 import util.CollectionUtils;
 
@@ -34,7 +32,7 @@ public class FilteredVisualGraphTest extends AbstractFilteringVisualGraphTest {
 	@Before
 	public void setUp() {
 
-		graph = new FilteringVisualGraph<AbstractTestVertex, TestEdge>() {
+		graph = new FilteringVisualGraph<>() {
 
 			@Override
 			public VisualGraphLayout<AbstractTestVertex, TestEdge> getLayout() {
@@ -509,9 +507,7 @@ public class FilteredVisualGraphTest extends AbstractFilteringVisualGraphTest {
 	public void testAddEdge_Overloaded_Edge_Collection_WhenUnfiltered() {
 
 		doTestAddEdge_WhenUnfiltered((e, v1, v2) -> {
-
-			Collection<AbstractTestVertex> vertices = asList(v1, v2);
-			graph.addEdge(e, vertices);
+			graph.addEdge(v1, v2, e);
 		});
 	}
 
@@ -519,9 +515,7 @@ public class FilteredVisualGraphTest extends AbstractFilteringVisualGraphTest {
 	public void testAddEdge_Overloaded_Edge_Collection_WhenFiltered() {
 
 		doTestAddEdge_WhenFiltered((e, v1, v2) -> {
-
-			Collection<AbstractTestVertex> vertices = asList(v1, v2);
-			graph.addEdge(e, vertices);
+			graph.addEdge(v1, v2, e);
 		});
 	}
 
@@ -531,7 +525,7 @@ public class FilteredVisualGraphTest extends AbstractFilteringVisualGraphTest {
 		doTestAddEdge_WhenUnfiltered((e, v1, v2) -> {
 
 			Collection<AbstractTestVertex> vertices = asList(v1, v2);
-			graph.addEdge(e, vertices, EdgeType.DIRECTED);
+			graph.addEdge(v1, v2, e);//, vertices, EdgeType.DIRECTED);
 		});
 	}
 
@@ -539,34 +533,32 @@ public class FilteredVisualGraphTest extends AbstractFilteringVisualGraphTest {
 	public void testAddEdge_Overloaded_Edge_Collection_Type_WhenFiltered() {
 
 		doTestAddEdge_WhenFiltered((e, v1, v2) -> {
-
-			Collection<AbstractTestVertex> vertices = asList(v1, v2);
-			graph.addEdge(e, vertices, EdgeType.DIRECTED);
+			graph.addEdge(v1, v2, e);//, vertices, EdgeType.DIRECTED);
 		});
 	}
 
 	@Test
 	public void testAddEdge_Overloaded_Edge_Vertex_Vertex_WhenUnfiltered() {
 
-		doTestAddEdge_WhenUnfiltered((e, v1, v2) -> graph.addEdge(e, v1, v2));
+		doTestAddEdge_WhenUnfiltered((e, v1, v2) -> graph.addEdge(v1, v2, e));
 	}
 
 	@Test
 	public void testAddEdge_Overloaded_Edge_Vertex_Vertex_WhenFiltered() {
 
-		doTestAddEdge_WhenFiltered((e, v1, v2) -> graph.addEdge(e, v1, v2));
+		doTestAddEdge_WhenFiltered((e, v1, v2) -> graph.addEdge(v1, v2, e));
 	}
 
 	@Test
 	public void testAddEdge_Overloaded_Edge_Pair_WhenUnfiltered() {
 
-		doTestAddEdge_WhenUnfiltered((e, v1, v2) -> graph.addEdge(e, new Pair<>(v1, v2)));
+		doTestAddEdge_WhenUnfiltered((e, v1, v2) -> graph.addEdge(v1, v2, e));
 	}
 
 	@Test
 	public void testAddEdge_Overloaded_Edge_Pair_WhenFiltered() {
 
-		doTestAddEdge_WhenFiltered((e, v1, v2) -> graph.addEdge(e, new Pair<>(v1, v2)));
+		doTestAddEdge_WhenFiltered((e, v1, v2) -> graph.addEdge(v1, v2, e));
 	}
 //==================================================================================================
 // Private Methods

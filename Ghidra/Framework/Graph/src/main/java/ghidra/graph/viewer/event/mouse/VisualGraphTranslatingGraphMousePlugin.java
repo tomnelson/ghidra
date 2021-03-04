@@ -20,11 +20,14 @@ import java.awt.Point;
 import java.awt.event.*;
 import java.awt.geom.Point2D;
 
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.control.AbstractGraphMousePlugin;
-import edu.uci.ics.jung.visualization.control.TranslatingGraphMousePlugin;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import ghidra.graph.viewer.*;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.control.AbstractGraphMousePlugin;
+import org.jungrapht.visualization.transform.MutableTransformer;
+
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 /**
  * Note: this class is based on {@link TranslatingGraphMousePlugin}.

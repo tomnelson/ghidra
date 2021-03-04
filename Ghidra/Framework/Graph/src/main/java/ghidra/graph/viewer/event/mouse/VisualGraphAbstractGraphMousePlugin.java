@@ -19,12 +19,12 @@ import java.awt.Cursor;
 import java.awt.event.*;
 import java.awt.geom.Point2D;
 
-import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.AbstractGraphMousePlugin;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 import ghidra.graph.viewer.*;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.control.AbstractGraphMousePlugin;
+import org.jungrapht.visualization.control.GraphElementAccessor;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.selection.MutableSelectedState;
 
 /**
  * Usage Notes:
@@ -69,7 +69,7 @@ public abstract class VisualGraphAbstractGraphMousePlugin<V extends VisualVertex
 
 		VisualizationViewer<V, E> vv = getViewer(e);
 		GraphElementAccessor<V, E> pickSupport = vv.getPickSupport();
-		Layout<V, E> layout = vv.getGraphLayout();
+		LayoutModel<V> layout = vv.getVisualizationModel().getLayoutModel();
 		if (pickSupport == null) {
 			return false;
 		}
@@ -93,7 +93,7 @@ public abstract class VisualGraphAbstractGraphMousePlugin<V extends VisualVertex
 
 		VisualizationViewer<V, E> vv = getViewer(e);
 		GraphElementAccessor<V, E> pickSupport = vv.getPickSupport();
-		Layout<V, E> layout = vv.getGraphLayout();
+		LayoutModel<V> layout = vv.getVisualizationModel().getLayoutModel();
 		if (pickSupport == null) {
 			return false;
 		}
@@ -111,28 +111,28 @@ public abstract class VisualGraphAbstractGraphMousePlugin<V extends VisualVertex
 	}
 
 	protected boolean pickVertex(V vertex, VisualizationViewer<V, E> viewer) {
-		PickedState<V> pickedVertexState = viewer.getPickedVertexState();
+		MutableSelectedState<V> pickedVertexState = viewer.getSelectedVertexState();
 		if (pickedVertexState == null) {
 			return false;
 		}
 
-		if (pickedVertexState.isPicked(vertex) == false) {
+		if (pickedVertexState.isSelected(vertex) == false) {
 			pickedVertexState.clear();
-			pickedVertexState.pick(vertex, true);
+			pickedVertexState.select(vertex, true);
 		}
 
 		return true;
 	}
 
 	protected boolean pickEdge(E edge, VisualizationViewer<V, E> viewer) {
-		PickedState<E> pickedVertexState = viewer.getPickedEdgeState();
+		MutableSelectedState<E> pickedVertexState = viewer.getSelectedEdgeState();
 		if (pickedVertexState == null) {
 			return false;
 		}
 
-		if (pickedVertexState.isPicked(edge) == false) {
+		if (pickedVertexState.isSelected(edge) == false) {
 			pickedVertexState.clear();
-			pickedVertexState.pick(edge, true);
+			pickedVertexState.select(edge, true);
 		}
 
 		return true;

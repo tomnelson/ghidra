@@ -31,7 +31,6 @@ import org.junit.After;
 import org.junit.Before;
 
 import docking.test.AbstractDockingTest;
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import generic.test.AbstractGenericTest;
 import ghidra.graph.graphs.AbstractTestVertex;
 import ghidra.graph.graphs.TestEdge;
@@ -192,7 +191,7 @@ public abstract class AbstractVisualGraphTest extends AbstractDockingTest {
 
 		swing(() -> {
 			TestGraphLayout layout = graph.getLayout();
-			Point2D p = layout.apply(v);
+			Point p = layout.apply(v);
 			layout.setLocation(v,
 				new Point2D.Double(p.getX() + layoutPoint.getX(), p.getY() + layoutPoint.getY()));
 		});
@@ -357,7 +356,7 @@ public abstract class AbstractVisualGraphTest extends AbstractDockingTest {
 	 */
 	protected void focusVertex(AbstractTestVertex v) {
 		GraphViewer<AbstractTestVertex, TestEdge> viewer = graphComponent.getPrimaryViewer();
-		GPickedState<AbstractTestVertex> ps = viewer.getGPickedVertexState();
+		GPickedState<AbstractTestVertex> ps = viewer.getGSelectedVertexState();
 		swing(() -> {
 			ps.clear();
 			ps.pick(v, true);

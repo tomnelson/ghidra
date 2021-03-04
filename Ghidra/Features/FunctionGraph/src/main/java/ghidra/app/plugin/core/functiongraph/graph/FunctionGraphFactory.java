@@ -22,7 +22,6 @@ import java.util.*;
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.layout.*;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.ListingFunctionGraphVertex;
@@ -37,6 +36,7 @@ import ghidra.util.Msg;
 import ghidra.util.SystemUtilities;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jgrapht.Graph;
 
 public class FunctionGraphFactory {
 
@@ -342,7 +342,7 @@ public class FunctionGraphFactory {
 			isExit = true;
 		}
 
-		if (graph.getOutEdges(v).isEmpty()) {
+		if (graph.outgoingEdgesOf(v).isEmpty()) {
 			isExit = true;
 		}
 

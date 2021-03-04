@@ -23,47 +23,48 @@ import org.apache.commons.collections4.IterableUtils;
 import org.jdesktop.animation.timing.Animator;
 import org.jdesktop.animation.timing.interpolation.PropertySetter;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.VisualizationServer;
-import edu.uci.ics.jung.visualization.util.Caching;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.FunctionGraph;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
 import ghidra.app.plugin.core.functiongraph.mvc.FGController;
 import ghidra.app.plugin.core.functiongraph.mvc.FGData;
 import ghidra.graph.job.AbstractAnimatorJob;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.layout.util.Caching;
 
 public class MergeVertexFunctionGraphJob extends AbstractAnimatorJob {
 
 	private static final int DURATION = 1500;
 
 	private final VisualizationServer<FGVertex, FGEdge> viewer;
-	private Layout<FGVertex, FGEdge> graphLayout;
+	private LayoutModel<FGVertex> layoutModel;
 	private final FGVertex mergedVertex;
 	private final FGVertex parentVertex;
 	private final FGVertex childVertex;
 
-	private Point2D parentStart;
-	private Point2D childStart;
-	private Point2D parentDestination;
-	private Point2D childDestination;
-	private Point2D mergedDestination;
+	private Point parentStart;
+	private Point childStart;
+	private Point parentDestination;
+	private Point childDestination;
+	private Point mergedDestination;
 
 	private final boolean useAnimation;
 
 	private final FGController controller;
 
 	public MergeVertexFunctionGraphJob(FGController controller,
-			VisualizationServer<FGVertex, FGEdge> viewer, final FGVertex mergedVertex,
-			FGVertex newParentVertex, FGVertex newChildVertex, boolean useAnimation) {
+									   VisualizationServer<FGVertex, FGEdge> viewer, final FGVertex mergedVertex,
+									   FGVertex newParentVertex, FGVertex newChildVertex, boolean useAnimation) {
 		this.controller = controller;
 		this.viewer = viewer;
 		this.mergedVertex = mergedVertex;
 		this.parentVertex = newParentVertex;
 		this.childVertex = newChildVertex;
 		this.useAnimation = useAnimation;
-		this.graphLayout = viewer.getGraphLayout();
+		this.layoutModel = viewer.getVisualizationModel().getLayoutModel();
 
 		updateOpacity(0D); // don't paint this vertex or its edges initially
 	}
@@ -100,7 +101,7 @@ public class MergeVertexFunctionGraphJob extends AbstractAnimatorJob {
 		}
 
 		clearLocationCache();
-		graphLayout.setLocation(mergedVertex, mergedDestination);
+		layoutModel.set(mergedVertex, mergedDestination);
 		removeOldVertexAndEdges();
 
 		updateOpacity(1D);
@@ -117,7 +118,7 @@ public class MergeVertexFunctionGraphJob extends AbstractAnimatorJob {
 	}
 
 	protected void clearLocationCache() {
-		Layout<FGVertex, FGEdge> jungLayout = viewer.getGraphLayout();
+		LayoutModel<FGVertex> jungLayout = viewer.getVisualizationModel().getLayoutModel();
 		((Caching) jungLayout).clear();
 	}
 
@@ -140,19 +141,18 @@ public class MergeVertexFunctionGraphJob extends AbstractAnimatorJob {
 		Rectangle newBounds = mergedVertex.getBounds();
 		int dy = (newBounds.height - originalBounds.height) >> 1;
 
-		Point2D parentLocation = graphLayout.apply(parentVertex);
-		Point2D mergedLocation = (Point2D) parentLocation.clone();
-		mergedLocation.setLocation(parentLocation.getX(), parentLocation.getY() + dy);
+		Point parentLocation = layoutModel.apply(parentVertex);
+		Point mergedLocation = Point.of(parentLocation.x, parentLocation.y + dy);
 
 		parentStart = parentLocation;
 		parentDestination = parentStart; // this vertex doesn't move
-		childStart = graphLayout.apply(childVertex);
+		childStart = layoutModel.apply(childVertex);
 		childDestination = parentDestination; // they will end up together
 		mergedDestination = mergedLocation;
 
 		Point2D oldLocationProperty = parentVertex.getLocation();
 		mergedVertex.setLocation(oldLocationProperty);
-		graphLayout.setLocation(mergedVertex, mergedDestination); // tell the graph the new location
+		layoutModel.set(mergedVertex, mergedDestination); // tell the graph the new location
 
 		// note: due to the caching nature of some layouts, if we don't reset this, then 
 		// some of our GUI calculations will be incorrect (like when we try to fit the 
@@ -165,32 +165,34 @@ public class MergeVertexFunctionGraphJob extends AbstractAnimatorJob {
 		// The new position is some percentage of the distance between the start 
 		// position and the destination position
 		//
-		double parentDestinationX = parentDestination.getX();
-		double parentDeltaX = (parentDestinationX - parentStart.getX()) * percentComplete;
-		double childDestinationY = childDestination.getY();
-		double childDeltaY = (childDestinationY - childStart.getY()) * percentComplete;
+		double parentDestinationX = parentDestination.x;
+		double parentDeltaX = (parentDestinationX - parentStart.x) * percentComplete;
+		double childDestinationY = childDestination.y;
+		double childDeltaY = (childDestinationY - childStart.y) * percentComplete;
 
-		double childDestinationX = childDestination.getX();
-		double childDeltaX = (childDestinationX - childStart.getX()) * percentComplete;
-		double parentDestinationY = parentDestination.getY();
-		double parentDeltaY = (parentDestinationY - parentStart.getY()) * percentComplete;
+		double childDestinationX = childDestination.x;
+		double childDeltaX = (childDestinationX - childStart.x) * percentComplete;
+		double parentDestinationY = parentDestination.y;
+		double parentDeltaY = (parentDestinationY - parentStart.y) * percentComplete;
 
-		double newParentX = parentStart.getX() + parentDeltaX;
-		double newParentY = parentStart.getY() + parentDeltaY;
+		double newParentX = parentStart.x + parentDeltaX;
+		double newParentY = parentStart.y + parentDeltaY;
 
-		double newChildX = childStart.getX() + childDeltaX;
-		double newChildY = childStart.getY() + childDeltaY;
+		double newChildX = childStart.x + childDeltaX;
+		double newChildY = childStart.y + childDeltaY;
 
-		Point2D newParentLocation = new Point2D.Double(newParentX, newParentY);
-		Point2D newChildLocation = new Point2D.Double(newChildX, newChildY);
+		Point newParentLocation = Point.of(newParentX, newParentY);
+		Point newChildLocation = Point.of(newChildX, newChildY);
 
 		// this is needed for the edges to paint correctly, as they may be articulated
-		parentVertex.setLocation(newParentLocation);
-		childVertex.setLocation(newChildLocation);
+		layoutModel.set(parentVertex, newParentLocation);
+		layoutModel.set(childVertex, newChildLocation);
+//		parentVertex.setLocation(newParentLocation);
+//		childVertex.setLocation(newChildLocation);
 
 		clearLocationCache(); // the new values won't be read if we don't clear the cache
-		graphLayout.setLocation(parentVertex, newParentLocation);
-		graphLayout.setLocation(childVertex, newChildLocation);
+		layoutModel.set(parentVertex, newParentLocation);
+		layoutModel.set(childVertex, newChildLocation);
 	}
 
 	private void updateOpacity(double percentComplete) {
@@ -221,14 +223,14 @@ public class MergeVertexFunctionGraphJob extends AbstractAnimatorJob {
 	}
 
 	private Collection<FGEdge> getEdges(FGVertex vertex) {
-		Graph<FGVertex, FGEdge> graph = graphLayout.getGraph();
+		Graph<FGVertex, FGEdge> graph = layoutModel.getGraph();
 		List<FGEdge> edges = new LinkedList<>();
-		Collection<FGEdge> inEdges = graph.getInEdges(vertex);
+		Collection<FGEdge> inEdges = graph.incomingEdgesOf(vertex);
 		if (inEdges != null) {
 			edges.addAll(inEdges);
 		}
 
-		Collection<FGEdge> outEdges = graph.getOutEdges(vertex);
+		Collection<FGEdge> outEdges = graph.outgoingEdgesOf(vertex);
 		if (outEdges != null) {
 			edges.addAll(outEdges);
 		}

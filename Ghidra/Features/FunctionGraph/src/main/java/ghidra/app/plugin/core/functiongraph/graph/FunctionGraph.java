@@ -20,7 +20,6 @@ import java.util.*;
 
 import org.jdom.Element;
 
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.layout.FGLayout;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.*;
 import ghidra.app.plugin.core.functiongraph.mvc.*;
@@ -32,6 +31,7 @@ import ghidra.program.model.address.AddressSet;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.symbol.RefType;
 import ghidra.program.util.ProgramSelection;
+import org.jgrapht.Graph;
 
 /**
  * The Function Graph is a composite object that contains a Graph (for holding vertices and
@@ -39,7 +39,7 @@ import ghidra.program.util.ProgramSelection;
  * coloring and grouping of nodes), and edge information (for things like finding paths between
  * nodes).
  */
-public class FunctionGraph extends GroupingVisualGraph<FGVertex, FGEdge> {
+public class FunctionGraph extends GroupingVisualGraph<FGVertex, FGEdge> implements Graph<FGVertex, FGEdge> {
 
 	/** Keep a copy around for later retrieval */
 	private Set<FGEdge> ungroupedEdges = new HashSet<>();
@@ -545,8 +545,8 @@ public class FunctionGraph extends GroupingVisualGraph<FGVertex, FGEdge> {
 			vertex.dispose();
 		}
 
-		vertices.clear();
-		edges.clear();
+//		vertices.clear();
+//		edges.clear();
 
 		ungroupedEdges.clear();
 		groupHistorySet.clear();

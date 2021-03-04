@@ -17,8 +17,7 @@ package ghidra.app.plugin.core.functiongraph.graph.jung.renderer;
 
 import java.awt.Color;
 import java.awt.Paint;
-
-import com.google.common.base.Function;
+import java.util.function.Function;
 
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.mvc.FunctionGraphOptions;

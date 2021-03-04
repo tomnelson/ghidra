@@ -17,8 +17,8 @@ package ghidra.graph.job;
 
 import java.awt.geom.Point2D;
 
-import edu.uci.ics.jung.visualization.VisualizationServer;
 import ghidra.graph.viewer.GraphViewerUtils;
+import org.jungrapht.visualization.VisualizationServer;
 
 public class MoveVertexToCenterTopAnimatorFunctionGraphJob<V, E>
 		extends MoveViewAnimatorFunctionGraphJob<V, E> {
@@ -26,7 +26,7 @@ public class MoveVertexToCenterTopAnimatorFunctionGraphJob<V, E>
 	private final V vertex;
 
 	public MoveVertexToCenterTopAnimatorFunctionGraphJob(VisualizationServer<V, E> viewer, V vertex,
-			boolean useAnimation) {
+														 boolean useAnimation) {
 		super(viewer, useAnimation);
 		this.vertex = vertex;
 	}

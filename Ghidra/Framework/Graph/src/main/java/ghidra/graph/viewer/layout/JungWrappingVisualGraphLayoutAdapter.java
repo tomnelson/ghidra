@@ -15,19 +15,6 @@
  */
 package ghidra.graph.viewer.layout;
 
-import java.awt.Dimension;
-import java.awt.Shape;
-import java.awt.geom.Point2D;
-import java.lang.ref.WeakReference;
-import java.lang.reflect.Constructor;
-import java.util.*;
-
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.renderers.BasicEdgeRenderer;
-import edu.uci.ics.jung.visualization.renderers.Renderer.EdgeLabel;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
@@ -36,6 +23,25 @@ import ghidra.graph.viewer.renderer.ArticulatedEdgeRenderer;
 import ghidra.graph.viewer.shape.ArticulatedEdgeTransformer;
 import ghidra.util.exception.AssertException;
 import ghidra.util.task.TaskMonitor;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.DefaultLayoutModel;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.renderers.AbstractEdgeRenderer;
+import org.jungrapht.visualization.renderers.Renderer;
+
+import java.awt.Dimension;
+import java.awt.Shape;
+import java.lang.ref.WeakReference;
+import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * A wrapper that allows for existing Jung layouts to be used inside of the Visual Graph system. 
@@ -46,46 +52,47 @@ import ghidra.util.task.TaskMonitor;
 //@formatter:off
 public class JungWrappingVisualGraphLayoutAdapter<V extends VisualVertex, 
                                                   E extends VisualEdge<V>>
-
+	extends DefaultLayoutModel<V>
 	implements VisualGraphLayout<V, E> {
 //@formatter:on
 
-	private ArticulatedEdgeTransformer<V, E> edgeShapeTransformer =
-		new ArticulatedEdgeTransformer<>();
+	private ArticulatedEdgeTransformer<V, E> edgeShapeTransformer =new ArticulatedEdgeTransformer<>();
 	private ArticulatedEdgeRenderer<V, E> edgeRenderer = new ArticulatedEdgeRenderer<>();
 
-	private List<WeakReference<LayoutListener<V, E>>> listeners = new ArrayList<>();
+	private List<WeakReference<LayoutListener<V>>> listeners = new ArrayList<>();
 
-	protected Layout<V, E> delegate;
+	protected LayoutModel<V> delegate;
 
-	public JungWrappingVisualGraphLayoutAdapter(Layout<V, E> jungLayout) {
+	public JungWrappingVisualGraphLayoutAdapter(LayoutModel<V> jungLayout) {
+		super(LayoutModel.builder());
+
 		this.delegate = jungLayout;
 	}
 
-	@Override
-	public void initialize() {
-		delegate.initialize();
-	}
+//	@Override
+//	public void initialize() {
+//		delegate.initialize();
+//	}
 
-	@Override
-	public void reset() {
-		delegate.reset();
-	}
+//	@Override
+//	public void reset() {
+//		delegate.reset();
+//	}
 
 	@Override
 	public LayoutPositions<V, E> calculateLocations(VisualGraph<V, E> graph, TaskMonitor monitor) {
 
-		Map<V, Point2D> vertexLocations = new HashMap<>();
+		Map<V, Point> vertexLocations = new HashMap<>();
 		Collection<V> vertices = graph.getVertices();
 		for (V v : vertices) {
-			Point2D location = delegate.apply(v);
+			Point location = delegate.apply(v);
 			vertexLocations.put(v, location);
 		}
 
-		Map<E, List<Point2D>> edgeErticulations = new HashMap<>();
+		Map<E, List<Point>> edgeErticulations = new HashMap<>();
 		Collection<E> edges = graph.getEdges();
 		for (E edge : edges) {
-			List<Point2D> newArticulations = new ArrayList<>();
+			List<Point> newArticulations = new ArrayList<>();
 			edgeErticulations.put(edge, newArticulations);
 		}
 
@@ -96,17 +103,22 @@ public class JungWrappingVisualGraphLayoutAdapter<V extends VisualVertex,
 	@Override
 	public JungWrappingVisualGraphLayoutAdapter cloneLayout(VisualGraph<V, E> newGraph) {
 
-		Layout<V, E> newJungLayout = cloneJungLayout(newGraph);
+		LayoutModel<V> newJungLayout = cloneJungLayout(newGraph);
 		return new JungWrappingVisualGraphLayoutAdapter(newJungLayout);
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	protected Layout<V, E> cloneJungLayout(VisualGraph<V, E> newGraph) {
+//	@Override
+//	public void setLocation(V v, Point location, ChangeType changeType) {
+//		delegate.set(v, location);
+//	}
 
-		Class<? extends Layout> delegateClass = delegate.getClass();
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	protected LayoutModel<V> cloneJungLayout(VisualGraph<V, E> newGraph) {
+
+		Class<? extends LayoutModel> delegateClass = delegate.getClass();
 		try {
-			Constructor<? extends Layout> constructor = delegateClass.getConstructor(Graph.class);
-			Layout layout = constructor.newInstance(newGraph);
+			Constructor<? extends LayoutModel> constructor = delegateClass.getConstructor(Graph.class);
+			LayoutModel layout = constructor.newInstance(newGraph);
 			return layout;
 		}
 		catch (Exception e) {
@@ -125,13 +137,18 @@ public class JungWrappingVisualGraphLayoutAdapter<V extends VisualVertex,
 	}
 
 	@Override
+	public LayoutModel<V> layoutModel() {
+		return delegate;
+	}
+
+	@Override
 	public Graph<V, E> getGraph() {
 		return delegate.getGraph();
 	}
 
-	@Override
+//	@Override
 	public Dimension getSize() {
-		return delegate.getSize();
+		return new Dimension(delegate.getWidth(), delegate.getHeight());
 	}
 
 	@Override
@@ -144,32 +161,33 @@ public class JungWrappingVisualGraphLayoutAdapter<V extends VisualVertex,
 		delegate.lock(v, lock);
 	}
 
-	@Override
-	public void setGraph(Graph<V, E> graph) {
+//	@Override
+	public void setGraph(Graph<V, ?> graph) {
 		delegate.setGraph(graph);
 	}
 
-	@Override
-	public void setInitializer(Function<V, Point2D> t) {
+//	@Override
+	public void setInitializer(Function<V, Point> t) {
 		delegate.setInitializer(t);
 	}
 
-	@Override
+//	@Override
 	public void setSize(Dimension d) {
-		delegate.setSize(d);
-		syncVertexLocationsToLayout();
+		delegate.setSize(d.width, d.height);
+//		syncVertexLocationsToLayout();
 	}
 
-	private void syncVertexLocationsToLayout() {
-		Graph<V, E> g = getGraph();
-		Collection<V> vertices = g.getVertices();
-		for (V v : vertices) {
-			v.setLocation(apply(v));
-		}
-	}
+//	private void syncVertexLocationsToLayout() {
+//		Graph<V, E> g = getGraph();
+//		Collection<V> vertices = g.vertexSet();
+//		for (V v : vertices) {
+//			delegate.set(v, )
+//			v.setLocation(apply(v));
+//		}
+//	}
 
 	@Override
-	public Point2D apply(V v) {
+	public Point apply(V v) {
 		return delegate.apply(v);
 	}
 
@@ -177,17 +195,17 @@ public class JungWrappingVisualGraphLayoutAdapter<V extends VisualVertex,
 // Default Edge Stuff
 //==================================================================================================	
 	@Override
-	public BasicEdgeRenderer<V, E> getEdgeRenderer() {
+	public AbstractEdgeRenderer<V, E> getEdgeRenderer() {
 		return edgeRenderer;
 	}
 
-	@Override
-	public Function<E, Shape> getEdgeShapeTransformer() {
+	//	@Override
+	public BiFunction<Graph<V, E>, E, Shape> getEdgeShapeTransformer() {
 		return edgeShapeTransformer;
 	}
 
 	@Override
-	public EdgeLabel<V, E> getEdgeLabelRenderer() {
+	public Renderer.EdgeLabel<V, E> getEdgeLabelRenderer() {
 		return null;
 	}
 
@@ -197,9 +215,9 @@ public class JungWrappingVisualGraphLayoutAdapter<V extends VisualVertex,
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public void addLayoutListener(LayoutListener<V, E> listener) {
-		Class<? extends LayoutListener<V, E>> listenerClass =
-			(Class<? extends LayoutListener<V, E>>) listener.getClass();
+	public void addLayoutListener(LayoutListener<V> listener) {
+		Class<? extends LayoutListener<V>> listenerClass =
+			(Class<? extends LayoutListener<V>>) listener.getClass();
 		if (listenerClass.isAnonymousClass()) {
 			throw new AssertException("Cannot add anonymous listeners to a weak collection!");
 		}
@@ -207,11 +225,11 @@ public class JungWrappingVisualGraphLayoutAdapter<V extends VisualVertex,
 	}
 
 	@Override
-	public void removeLayoutListener(LayoutListener<V, E> listener) {
-		Iterator<WeakReference<LayoutListener<V, E>>> iterator = listeners.iterator();
+	public void removeLayoutListener(LayoutListener<V> listener) {
+		Iterator<WeakReference<LayoutListener<V>>> iterator = listeners.iterator();
 		for (; iterator.hasNext();) {
-			WeakReference<LayoutListener<V, E>> reference = iterator.next();
-			LayoutListener<V, E> layoutListener = reference.get();
+			WeakReference<LayoutListener<V>> reference = iterator.next();
+			LayoutListener<V> layoutListener = reference.get();
 			if (layoutListener == null) {
 				iterator.remove();
 			}
@@ -222,29 +240,29 @@ public class JungWrappingVisualGraphLayoutAdapter<V extends VisualVertex,
 		}
 	}
 
-	private void fireVertexLocationChanged(V vertex, Point2D point, ChangeType type) {
-		Iterator<WeakReference<LayoutListener<V, E>>> iterator = listeners.iterator();
+	private void fireVertexLocationChanged(V vertex, Point point, ChangeType type) {
+		Iterator<WeakReference<LayoutListener<V>>> iterator = listeners.iterator();
 		for (; iterator.hasNext();) {
-			WeakReference<LayoutListener<V, E>> reference = iterator.next();
-			LayoutListener<V, E> layoutListener = reference.get();
+			WeakReference<LayoutListener<V>> reference = iterator.next();
+			LayoutListener<V> layoutListener = reference.get();
 			if (layoutListener == null) {
 				iterator.remove();
 				continue;
 			}
 
-			layoutListener.vertexLocationChanged(vertex, point, type);
+			layoutListener.vertexLocationChanged(vertex, Point.of(point.x, point.y), type);
 		}
 	}
 
-	@Override
-	public void setLocation(V v, Point2D location) {
-		delegate.setLocation(v, location);
+//	@Override
+	public void setLocation(V v, Point location) {
+		delegate.set(v, location);
 		fireVertexLocationChanged(v, location, ChangeType.USER);
 	}
 
-	@Override
-	public void setLocation(V v, Point2D location, ChangeType changeType) {
-		delegate.setLocation(v, location);
+//	@Override
+	public void setLocation(V v, Point location, ChangeType changeType) {
+		delegate.set(v, location);
 		fireVertexLocationChanged(v, location, changeType);
 	}
 

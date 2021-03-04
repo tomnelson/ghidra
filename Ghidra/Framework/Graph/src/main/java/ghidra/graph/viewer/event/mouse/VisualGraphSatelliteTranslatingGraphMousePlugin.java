@@ -22,11 +22,15 @@ import java.awt.geom.Point2D;
 
 import javax.swing.SwingUtilities;
 
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.control.SatelliteVisualizationViewer;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.SatelliteVisualizationViewer;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.transform.MutableTransformer;
+
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 public class VisualGraphSatelliteTranslatingGraphMousePlugin<V extends VisualVertex, E extends VisualEdge<V>>
 		extends VisualGraphSatelliteAbstractGraphMousePlugin<V, E> {
@@ -179,7 +183,7 @@ public class VisualGraphSatelliteTranslatingGraphMousePlugin<V extends VisualVer
 		Rectangle bounds = satelliteLens.getBounds();
 		Point location = bounds.getLocation();
 		location =
-			SwingUtilities.convertPoint(satelliteViewer, location, satelliteViewer.getParent());
+			SwingUtilities.convertPoint(satelliteViewer.getComponent(), location, satelliteViewer.getComponent().getParent());
 		bounds.setLocation(location);
 
 		Shape satelliteBounds = satelliteViewer.getBounds();
@@ -187,7 +191,7 @@ public class VisualGraphSatelliteTranslatingGraphMousePlugin<V extends VisualVer
 			moveRectangleCompletelyOntoOtherRectangle(bounds, satelliteBounds.getBounds());
 
 		Point lensPointRelativeToSatellite = SwingUtilities.convertPoint(
-			satelliteViewer.getParent(), lensBounds.getLocation(), satelliteViewer);
+			satelliteViewer.getComponent().getParent(), lensBounds.getLocation(), satelliteViewer.getComponent());
 		return lensPointRelativeToSatellite;
 	}
 

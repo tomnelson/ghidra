@@ -23,10 +23,7 @@ import java.util.function.Consumer;
 
 import javax.swing.*;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.picking.MultiPickedState;
-import edu.uci.ics.jung.visualization.picking.PickedState;
+import docking.widgets.PopupWindow;
 import generic.util.WindowUtilities;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.edge.PathHighlightListener;
@@ -38,6 +35,14 @@ import ghidra.graph.viewer.options.VisualGraphOptions;
 import ghidra.graph.viewer.popup.*;
 import ghidra.graph.viewer.renderer.VisualGraphRenderer;
 import ghidra.util.layout.PairLayout;
+import org.jungrapht.visualization.AbstractVisualizationViewer;
+import org.jungrapht.visualization.VisualizationModel;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.renderers.BiModalRenderer;
+import org.jungrapht.visualization.renderers.Renderer;
+import org.jungrapht.visualization.selection.MultiMutableSelectedState;
+import org.jungrapht.visualization.selection.SelectedState;
 
 /**
  * The base viewer for the Graph module.   This viewer provides methods for manipulating
@@ -57,7 +62,7 @@ import ghidra.util.layout.PairLayout;
  * 
  */
 public class GraphViewer<V extends VisualVertex, E extends VisualEdge<V>>
-		extends VisualizationViewer<V, E> {
+		extends AbstractVisualizationViewer<V, E> {
 
 	private GPickedState<V> gPickedState;
 
@@ -71,24 +76,25 @@ public class GraphViewer<V extends VisualVertex, E extends VisualEdge<V>>
 	private VisualGraphViewUpdater<V, E> viewUpdater;
 	private VisualGraphPathHighlighter<V, E> pathHighlighter;
 
-	public GraphViewer(VisualGraphLayout<V, E> layout, Dimension size) {
-		super(layout, size);
+	public GraphViewer(VisualGraphLayout<V, E> layoutModel, Dimension size) {
+		super(VisualizationViewer.builder(
+				(VisualizationModel<V,E>)VisualizationModel.<V,E>builder(layoutModel).build())
+				.viewSize(size).graphMouse(new VisualGraphPluggableGraphMouse()));
 
 		buildUpdater();
-
 		// TODO how slow does this make painting?
 		//Map<Key, Object> hints = getRenderingHints();
 		//hints.put(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-		setRenderer(new VisualGraphRenderer<>(layout.getEdgeLabelRenderer()));
+		getRenderer().setRenderer(BiModalRenderer.HEAVYWEIGHT,
+				new VisualGraphRenderer<>(this.getComponent(),
+						layoutModel.getEdgeLabelRenderer()));
 
-		setGraphMouse(new VisualGraphPluggableGraphMouse<>());
+//		setGraphMouse(new VisualGraphPluggableGraphMouse<>());
 
-		PickedState<V> pickedState = getPickedVertexState();
-		gPickedState = new GPickedState<>((MultiPickedState<V>) pickedState);
-		setPickedVertexState(gPickedState);
-
-		popupRegulator = new PopupRegulator<V, E>(new GraphViewerPopupSource());
+		SelectedState<V> pickedState = getSelectedVertexState();
+		gPickedState = new GPickedState<>((MultiMutableSelectedState<V>) pickedState);
+		setSelectedVertexState(gPickedState);
 	}
 
 	private void buildUpdater() {
@@ -124,16 +130,16 @@ public class GraphViewer<V extends VisualVertex, E extends VisualEdge<V>>
 	}
 
 	public VisualGraphLayout<V, E> getVisualGraphLayout() {
-		return GraphViewerUtils.getVisualGraphLayout(getGraphLayout());
+		return GraphViewerUtils.getVisualGraphLayout(getVisualizationModel().getLayoutModel());
 	}
 
-	@Override
-	public void setGraphLayout(Layout<V, E> layout) {
+//	@Override
+	public void setLayout(LayoutModel<V> layout) {
 		if (!(layout instanceof VisualGraphLayout)) {
 			throw new IllegalArgumentException(getClass().getSimpleName() + " only supports " +
 				"layouts of type " + VisualGraphLayout.class.getSimpleName());
 		}
-		super.setGraphLayout(layout);
+		super.getVisualizationModel().setLayoutModel(layout);
 	}
 
 	public VisualGraph<V, E> getVisualGraph() {
@@ -148,7 +154,7 @@ public class GraphViewer<V extends VisualVertex, E extends VisualEdge<V>>
 	}
 
 	@Override
-	public void setGraphMouse(GraphMouse graphMouse) {
+	public void setGraphMouse(VisualizationViewer.GraphMouse graphMouse) {
 		if (!(graphMouse instanceof VisualGraphPluggableGraphMouse)) {
 			throw new IllegalArgumentException(
 				"GraphViewer must use a VisualGraphPluggableGraphMouse");
@@ -192,8 +198,8 @@ public class GraphViewer<V extends VisualVertex, E extends VisualEdge<V>>
 		return viewUpdater;
 	}
 
-	public GPickedState<V> getGPickedVertexState() {
-		PickedState<V> ps = super.getPickedVertexState();
+	public GPickedState<V> getGSelectedVertexState() {
+		SelectedState<V> ps = super.getSelectedVertexState();
 		if (!(ps instanceof GPickedState)) {
 			throw new IllegalArgumentException(
 				"GPickedState was not installed or was overrwritten");
@@ -290,7 +296,7 @@ public class GraphViewer<V extends VisualVertex, E extends VisualEdge<V>>
 	}
 
 	private ToolTipInfo<?> getToolTipInfo(MouseEvent event) {
-		Layout<V, E> viewerLayout = getGraphLayout();
+		LayoutModel<V> viewerLayout = getVisualizationModel().getLayoutModel();
 		Point p = event.getPoint();
 
 		// check for a vertex hit first, otherwise, we get edge hits when we are hovering 
@@ -342,14 +348,14 @@ public class GraphViewer<V extends VisualVertex, E extends VisualEdge<V>>
 
 		@Override
 		public V getVertex(MouseEvent event) {
-			Layout<V, E> viewerLayout = getGraphLayout();
+			LayoutModel<V> viewerLayout = getVisualizationModel().getLayoutModel();
 			Point p = event.getPoint();
 			return getPickSupport().getVertex(viewerLayout, p.getX(), p.getY());
 		}
 
 		@Override
 		public E getEdge(MouseEvent event) {
-			Layout<V, E> viewerLayout = getGraphLayout();
+			LayoutModel<V> viewerLayout = getVisualizationModel().getLayoutModel();
 			Point p = event.getPoint();
 			return getPickSupport().getEdge(viewerLayout, p.getX(), p.getY());
 		}

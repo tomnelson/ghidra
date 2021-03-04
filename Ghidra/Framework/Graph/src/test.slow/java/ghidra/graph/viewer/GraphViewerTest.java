@@ -24,10 +24,8 @@ import java.awt.geom.*;
 import java.util.Collection;
 import java.util.List;
 
+import org.jungrapht.visualization.layout.model.LayoutModel;
 import org.junit.Test;
-
-import edu.uci.ics.jung.algorithms.layout.KKLayout;
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import generic.test.AbstractGTest;
 import ghidra.graph.graphs.*;
 import ghidra.graph.support.*;
@@ -55,9 +53,10 @@ public class GraphViewerTest extends AbstractVisualGraphTest {
 
 	@Override
 	protected TestLayoutProvider createLayoutProvider() {
+
 		return new TestLayoutProvider() {
 			@Override
-			protected Layout<AbstractTestVertex, TestEdge> createJungLayout(TestVisualGraph g) {
+			protected LayoutModel<AbstractTestVertex> createJungLayout(TestVisualGraph g) {
 				return new KKLayout<>(g);
 			}
 		};

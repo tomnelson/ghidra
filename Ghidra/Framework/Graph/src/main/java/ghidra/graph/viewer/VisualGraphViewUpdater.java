@@ -16,15 +16,14 @@
 package ghidra.graph.viewer;
 
 import static ghidra.graph.viewer.GraphViewerUtils.*;
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 import java.awt.*;
 import java.awt.geom.Point2D;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.function.Function;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.visualization.*;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.job.*;
 import ghidra.graph.viewer.edge.routing.BasicEdgeRouter;
@@ -33,6 +32,9 @@ import ghidra.util.datastruct.WeakDataStructureFactory;
 import ghidra.util.datastruct.WeakSet;
 import ghidra.util.exception.AssertException;
 import ghidra.util.task.BusyListener;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationServer;
 import utility.function.Callback;
 
 /**
@@ -267,7 +269,7 @@ public class VisualGraphViewUpdater<V extends VisualVertex, E extends VisualEdge
 	public void ensureVertexVisible(V vertex, Rectangle area) {
 
 		RenderContext<V, E> renderContext = primaryViewer.getRenderContext();
-		Function<? super V, Shape> transformer = renderContext.getVertexShapeTransformer();
+		Function<? super V, Shape> transformer = renderContext.getVertexShapeFunction();
 		Shape shape = transformer.apply(vertex);
 		Rectangle bounds = shape.getBounds();
 		ensureVertexAreaVisible(vertex, bounds, null);
@@ -291,7 +293,7 @@ public class VisualGraphViewUpdater<V extends VisualVertex, E extends VisualEdge
 
 	public void updateEdgeShapes(Collection<E> edges) {
 
-		if (!layoutUsesEdgeArticulations(primaryViewer.getGraphLayout())) {
+		if (!layoutUsesEdgeArticulations(primaryViewer.getVisualizationModel().getLayoutModel())) {
 			return;
 		}
 

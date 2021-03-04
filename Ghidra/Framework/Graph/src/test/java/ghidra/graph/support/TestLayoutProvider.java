@@ -20,8 +20,6 @@ import java.util.Collection;
 
 import javax.swing.Icon;
 
-import edu.uci.ics.jung.algorithms.layout.DAGLayout;
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import ghidra.graph.graphs.TestEdge;
 import ghidra.graph.graphs.AbstractTestVertex;
 import ghidra.graph.viewer.layout.LayoutProvider;
@@ -29,6 +27,11 @@ import ghidra.graph.viewer.renderer.ArticulatedEdgeRenderer;
 import ghidra.graph.viewer.shape.ArticulatedEdgeTransformer;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jungrapht.visualization.layout.algorithms.DAGLayoutAlgorithm;
+import org.jungrapht.visualization.layout.algorithms.LayoutAlgorithm;
+import org.jungrapht.visualization.layout.model.DefaultLayoutModel;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * A layout provider used for testing.
@@ -43,20 +46,31 @@ public class TestLayoutProvider implements LayoutProvider<AbstractTestVertex, Te
 	@Override
 	public TestGraphLayout getLayout(TestVisualGraph g, TaskMonitor monitor)
 			throws CancelledException {
-		Layout<AbstractTestVertex, TestEdge> jungLayout = new DAGLayout<>(g);
+		LayoutModel<AbstractTestVertex> layoutModel =
+				LayoutModel.<AbstractTestVertex>builder().build();
+		layoutModel.setGraph(g);
+		LayoutAlgorithm<AbstractTestVertex> layoutAlgorithm =
+				DAGLayoutAlgorithm.<AbstractTestVertex,Object>builder().build();
+		layoutAlgorithm.visit(layoutModel);
 
-		Collection<AbstractTestVertex> vertices = g.getVertices();
-		for (AbstractTestVertex v : vertices) {
-			Point2D p = jungLayout.apply(v);
-			v.setLocation(p);
-		}
+//		Collection<AbstractTestVertex> vertices = g.getVertices();
+//		for (AbstractTestVertex v : vertices) {
+//			layoutModel.set(v, )
+//			Point p = layoutModel.apply(v);
+//			v.setLocation(p);
+//		}
 
-		return new TestGraphLayout(jungLayout);
+		return new TestGraphLayout(layoutModel);
 	}
 
 	// template method to allow tests to override the Jung layout in use
-	protected Layout<AbstractTestVertex, TestEdge> createJungLayout(TestVisualGraph g) {
-		return new DAGLayout<>(g);
+	protected LayoutModel<AbstractTestVertex> createJungLayout(TestVisualGraph g) {
+		LayoutModel<AbstractTestVertex> layoutModel =
+				LayoutModel.<AbstractTestVertex>builder().build();
+		LayoutAlgorithm<AbstractTestVertex> layoutAlgorithm =
+				DAGLayoutAlgorithm.<AbstractTestVertex,Object>builder().build();
+		layoutAlgorithm.visit(layoutModel);
+		return layoutModel;
 	}
 
 	@Override

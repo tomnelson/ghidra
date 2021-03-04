@@ -17,8 +17,7 @@ package functioncalls.graph.renderer;
 
 import java.awt.Color;
 import java.awt.Paint;
-
-import com.google.common.base.Function;
+import java.util.function.Function;
 
 import functioncalls.graph.FcgEdge;
 

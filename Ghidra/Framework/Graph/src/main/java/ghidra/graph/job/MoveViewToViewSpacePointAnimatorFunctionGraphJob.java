@@ -17,8 +17,8 @@ package ghidra.graph.job;
 
 import java.awt.geom.Point2D;
 
-import edu.uci.ics.jung.visualization.VisualizationServer;
 import ghidra.graph.viewer.GraphViewerUtils;
+import org.jungrapht.visualization.VisualizationServer;
 
 public class MoveViewToViewSpacePointAnimatorFunctionGraphJob<V, E>
 		extends MoveViewAnimatorFunctionGraphJob<V, E> {
@@ -26,7 +26,7 @@ public class MoveViewToViewSpacePointAnimatorFunctionGraphJob<V, E>
 	private Point2D viewSpacePoint;
 
 	public MoveViewToViewSpacePointAnimatorFunctionGraphJob(VisualizationServer<V, E> viewer,
-			Point2D viewSpacePoint, boolean useAnimation) {
+															Point2D viewSpacePoint, boolean useAnimation) {
 		super(viewer, useAnimation);
 		this.viewSpacePoint = viewSpacePoint;
 	}

@@ -25,10 +25,11 @@ import java.util.*;
 
 import javax.swing.JComponent;
 
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.util.PointUtils;
 import org.junit.*;
 
 import docking.action.DockingActionIf;
-import edu.uci.ics.jung.graph.Graph;
 import generic.test.TestUtils;
 import ghidra.app.cmd.label.AddLabelCmd;
 import ghidra.app.cmd.label.DeleteLabelCmd;
@@ -197,7 +198,7 @@ public class FunctionGraphPlugin2Test extends AbstractFunctionGraphTest {
 		Point clonePoint = clonePerspective.getLayoutTranslateCoordinates();
 
 		assertPointsAreAboutEqual("Cloned graph view info does not match the source graph",
-			primaryPoint, clonePoint);
+			PointUtils.convert(primaryPoint), PointUtils.convert(clonePoint));
 	}
 
 	@Test
@@ -533,7 +534,7 @@ public class FunctionGraphPlugin2Test extends AbstractFunctionGraphTest {
 		FGVertex newChildVertex = functionGraph.getVertexForAddress(toAddress);
 		assertNotNull(newChildVertex);
 
-		Collection<FGEdge> parentOutEdges = graph.getOutEdges(newParentVertex);
+		Collection<FGEdge> parentOutEdges = graph.outgoingEdgesOf(newParentVertex);
 		assertTrue(parentOutEdges.size() == 1);
 		assertEquals(newChildVertex, parentOutEdges.iterator().next().getEnd());
 
@@ -716,7 +717,7 @@ public class FunctionGraphPlugin2Test extends AbstractFunctionGraphTest {
 		FGVertex newChildVertex = functionGraph.getVertexForAddress(labelAddress);
 		assertNotNull(newChildVertex);
 
-		Collection<FGEdge> parentOutEdges = graph.getOutEdges(newParentVertex);
+		Collection<FGEdge> parentOutEdges = graph.outgoingEdgesOf(newParentVertex);
 		assertTrue(parentOutEdges.size() == 1);
 		assertEquals(newChildVertex, parentOutEdges.iterator().next().getEnd());
 

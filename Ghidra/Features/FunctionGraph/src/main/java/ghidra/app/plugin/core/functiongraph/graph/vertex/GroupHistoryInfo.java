@@ -20,8 +20,6 @@ import java.util.*;
 
 import org.jdom.Element;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.FunctionGraph;
 import ghidra.app.plugin.core.functiongraph.mvc.FGController;
@@ -30,6 +28,10 @@ import ghidra.program.model.address.Address;
 import ghidra.program.model.address.AddressSetView;
 import ghidra.util.Msg;
 import ghidra.util.xml.XmlUtilities;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.util.PointUtils;
 
 public class GroupHistoryInfo {
 
@@ -58,9 +60,9 @@ public class GroupHistoryInfo {
 			throw new IllegalArgumentException("Group description cannot be null");
 		}
 
-		Layout<FGVertex, FGEdge> graphLayout = functionGraph.getLayout();
-		Point2D location = graphLayout.apply(groupVertex);
-		locationInfo = new PointInfo(location);
+		LayoutModel<FGVertex> layoutModel = functionGraph.getLayout();
+		Point location = layoutModel.apply(groupVertex);
+		locationInfo = new PointInfo(new Point2D.Double(location.x, location.y));
 
 		addressInfo = new AddressInfo(groupVertex);
 	}
@@ -223,8 +225,8 @@ public class GroupHistoryInfo {
 		return oldGroup.removeAll(toRemove);
 	}
 
-	public Point2D getGroupLocation() {
-		return locationInfo.getPoint();
+	public Point getGroupLocation() {
+		return PointUtils.convert(locationInfo.getPoint());
 	}
 
 	public Set<FGVertex> getVertices() {
@@ -284,7 +286,7 @@ public class GroupHistoryInfo {
 			FunctionGraph functionGraph) {
 		Map<AddressHasher, FGVertex> map = new HashMap<>();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 
 		for (FGVertex vertex : vertices) {
 			AddressSetView addresses = vertex.getAddresses();

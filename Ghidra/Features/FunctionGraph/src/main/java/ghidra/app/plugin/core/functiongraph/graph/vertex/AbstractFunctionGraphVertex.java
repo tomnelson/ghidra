@@ -22,7 +22,6 @@ import java.awt.geom.Point2D;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.*;
 import ghidra.app.plugin.core.functiongraph.mvc.*;
 import ghidra.app.util.viewer.listingpanel.ListingModel;
@@ -34,6 +33,7 @@ import ghidra.program.util.ProgramLocation;
 import ghidra.program.util.ProgramSelection;
 import ghidra.util.SystemUtilities;
 import ghidra.util.exception.AssertException;
+import org.jgrapht.Graph;
 
 public abstract class AbstractFunctionGraphVertex implements FGVertex {
 

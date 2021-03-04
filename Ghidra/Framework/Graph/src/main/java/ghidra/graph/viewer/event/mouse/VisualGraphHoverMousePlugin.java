@@ -17,12 +17,12 @@ package ghidra.graph.viewer.event.mouse;
 
 import java.awt.event.*;
 
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.AbstractGraphMousePlugin;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.edge.VisualGraphPathHighlighter;
 import ghidra.util.task.SwingUpdateManager;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.control.AbstractGraphMousePlugin;
 
 /**
  * A mouse plugin to handle vertex hovers, to include animating paths in the graph, based 

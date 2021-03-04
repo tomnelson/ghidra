@@ -16,21 +16,21 @@
 package ghidra.graph.viewer.layout;
 
 import java.awt.Shape;
-import java.awt.geom.Point2D;
+import java.util.function.BiFunction;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.renderers.BasicEdgeRenderer;
-import edu.uci.ics.jung.visualization.renderers.Renderer;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
 import ghidra.graph.viewer.layout.LayoutListener.ChangeType;
 import ghidra.util.task.TaskMonitor;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.renderers.AbstractEdgeRenderer;
+import org.jungrapht.visualization.renderers.Renderer;
 
 /**
- * The interface for defining functions provided that are additional to that of {@link Layout}.
+ * The interface for defining functions provided that are additional to that of {@link LayoutModel}.
  *
  * @param <V> the vertex type
  * @param <E> the edge type
@@ -38,24 +38,22 @@ import ghidra.util.task.TaskMonitor;
 //@formatter:off
 public interface VisualGraphLayout<V extends VisualVertex, 
                                    E extends VisualEdge<V>>
-                                   
-
 // TODO Note: 'Layout' is a Jung interface.   We can always add a layer of indirection to get
 //             away from Jung, as needed.
-		extends Layout<V, E> {
+		extends LayoutModel<V> {
 //@formatter:on
 
 	/**
 	 * Adds a layout listener 
 	 * @param listener the listener
 	 */
-	public void addLayoutListener(LayoutListener<V, E> listener);
+	public void addLayoutListener(LayoutListener<V> listener);
 
 	/**
 	 * Removes a layout listener
 	 * @param listener the listener
 	 */
-	public void removeLayoutListener(LayoutListener<V, E> listener);
+	public void removeLayoutListener(LayoutListener<V> listener);
 
 	/**
 	 * Returns true if this layout uses articulated edges.  All {@link VisualEdge}s have the
@@ -96,7 +94,10 @@ public interface VisualGraphLayout<V extends VisualVertex,
 	 * @param location the new location
 	 * @param changeType the type of change
 	 */
-	public void setLocation(V v, Point2D location, ChangeType changeType);
+	void setLocation(V v, Point location, ChangeType changeType);
+
+	void setLocation(V v, Point location);
+
 
 	/**
 	 * Returns the graph of this layout
@@ -110,14 +111,14 @@ public interface VisualGraphLayout<V extends VisualVertex,
 	 * 
 	 * @return an optional edge renderer
 	 */
-	public BasicEdgeRenderer<V, E> getEdgeRenderer();
+	public AbstractEdgeRenderer<V, E> getEdgeRenderer();
 
 	/**
 	 * Returns an optional edge shape transformer.  This is used to create shapes for each edge.
 	 * 
 	 * @return an optional edge shape transformer
 	 */
-	public Function<E, Shape> getEdgeShapeTransformer();
+	public BiFunction<Graph<V,E>,E, Shape> getEdgeShapeTransformer();
 
 	/**
 	 * Returns an optional custom edge label renderer.  This is used to add labels to the edges.
@@ -130,5 +131,15 @@ public interface VisualGraphLayout<V extends VisualVertex,
 	 * Cleanup any resource being managed by this layout.
 	 */
 	public void dispose();
+
+	default LayoutModel<V> layoutModel() {
+		return this;
+	}
+
+//	default
+//	public void setLocation(V fgVertex, Point2D location, LayoutListener.ChangeType changeType) {
+//		set(fgVertex, location.getX(), location.getY());
+//	}
+
 
 }

@@ -20,10 +20,11 @@ import java.util.Collection;
 
 import javax.swing.Icon;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * A base implementation of {@link LayoutProvider} that stubs some default methods.
@@ -60,13 +61,14 @@ public abstract class AbstractLayoutProvider<V extends VisualVertex,
 	 * <P>Some graphs that have a layout will perform this same function as vertices are added.
 	 * 
 	 * @param g the graph
-	 * @param layout the graph layout
+	 * @param layoutModel the graph layout
 	 */
-	protected void initVertexLocations(G g, Layout<V, E> layout) {
+	protected void initVertexLocations(G g, LayoutModel<V> layoutModel) {
 		Collection<V> vertices = g.getVertices();
 		for (V v : vertices) {
-			Point2D p = layout.apply(v);
-			v.setLocation(p);
+			layoutModel.set(v, Point.ORIGIN);
+//			Point p = layout.apply(v);
+//			v.setLocation(p);
 		}
 	}
 }

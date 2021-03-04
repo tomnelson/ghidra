@@ -22,9 +22,6 @@ import java.util.*;
 import javax.swing.JComponent;
 
 import docking.widgets.OptionDialog;
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.VisualizationServer;
 import ghidra.app.plugin.core.functiongraph.graph.*;
 import ghidra.app.plugin.core.functiongraph.graph.layout.FGLayout;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.*;
@@ -38,6 +35,10 @@ import ghidra.program.model.symbol.FlowType;
 import ghidra.program.model.symbol.RefType;
 import ghidra.util.Msg;
 import ghidra.util.exception.AssertException;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * Houses view update methods specific to the {@link FunctionGraph} API.
@@ -129,7 +130,7 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 			edge = edge.cloneEdge(startVertex, destinationVertex);
 		}
 
-		graph.addEdge(edge, startVertex, destinationVertex);
+		graph.addEdge(startVertex, destinationVertex, edge);
 	}
 
 	public FGVertex updateEdgeVertexForUngrouping(FunctionGraph functionGraph,
@@ -147,7 +148,7 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 		// given address.
 		//
 		Address address = originalVertex.getVertexAddress();
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 		for (FGVertex vertex : vertices) {
 			if (vertex.containsAddress(address) && !vertex.equals(groupedVertex)) {
 				return vertex;
@@ -169,7 +170,7 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 		FGData functionGraphData = controller.getFunctionGraphData();
 		FunctionGraph functionGraph = functionGraphData.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 
 		Set<GroupedFunctionGraphVertex> groupVertices = new HashSet<>();
 		for (FGVertex vertex : vertices) {
@@ -246,27 +247,27 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 		FunctionGraph functionGraph = functionGraphData.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
 
-		Collection<FGEdge> inEdges = graph.getInEdges(oldGroupVertex);
-		Collection<FGEdge> outEdges = graph.getOutEdges(oldGroupVertex);
+		Collection<FGEdge> inEdges = graph.incomingEdgesOf(oldGroupVertex);
+		Collection<FGEdge> outEdges = graph.outgoingEdgesOf(oldGroupVertex);
 
 		graph.addVertex(newGroupVertex);
 
 		FGView view = controller.getView();
 		VisualizationServer<FGVertex, FGEdge> viewer = view.getPrimaryGraphViewer();
-		Layout<FGVertex, FGEdge> graphLayout = viewer.getGraphLayout();
-		Point2D location = graphLayout.apply(oldGroupVertex);
-		graphLayout.setLocation(newGroupVertex, (Point2D) location.clone());
+		LayoutModel<FGVertex> graphLayout = viewer.getVisualizationModel().getLayoutModel();
+		Point location = graphLayout.apply(oldGroupVertex);
+		graphLayout.set(newGroupVertex, location);
 
 		for (FGEdge edge : inEdges) {
 			FGVertex startVertex = edge.getStart();
 			FGEdge clonedEdge = edge.cloneEdge(startVertex, newGroupVertex);
-			graph.addEdge(clonedEdge, startVertex, newGroupVertex);
+			graph.addEdge(startVertex, newGroupVertex, clonedEdge);
 		}
 
 		for (FGEdge edge : outEdges) {
 			FGVertex destinationVertex = edge.getEnd();
-			graph.addEdge(edge.cloneEdge(newGroupVertex, destinationVertex), newGroupVertex,
-				destinationVertex);
+			graph.addEdge(newGroupVertex,
+				destinationVertex, edge.cloneEdge(newGroupVertex, destinationVertex));
 		}
 
 		graph.removeVertex(oldGroupVertex);
@@ -282,14 +283,14 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 		}
 
 		Set<FGVertex> vertices = new HashSet<>(groupHistory.getVertices());
-		Point2D location = groupHistory.getGroupLocation();
+		Point location = groupHistory.getGroupLocation();
 		if (location == null) {
 			FGView view = controller.getView();
 			VisualizationServer<FGVertex, FGEdge> viewer = view.getPrimaryGraphViewer();
 			Rectangle containingBounds =
 				GraphViewerUtils.getBoundsForVerticesInLayoutSpace(viewer, vertices);
 			location =
-				new Point2D.Double(containingBounds.getCenterX(), containingBounds.getCenterY());
+				Point.of(containingBounds.getCenterX(), containingBounds.getCenterY());
 		}
 
 		fixupVerticesForUncollapsedGroupMembers(functionGraph, vertices);
@@ -337,7 +338,7 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 		groupSelectedVertices(controller, null);
 	}
 
-	public void groupSelectedVertices(FGController controller, Point2D location) {
+	public void groupSelectedVertices(FGController controller, Point location) {
 		Set<FGVertex> selectedVertices = controller.getSelectedVertices();
 		int vertexCount = selectedVertices.size();
 		if (vertexCount == 1) {
@@ -363,7 +364,7 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 			Rectangle containingBounds =
 				GraphViewerUtils.getBoundsForVerticesInLayoutSpace(viewer, selectedVertices);
 			location =
-				new Point2D.Double(containingBounds.getCenterX(), containingBounds.getCenterY());
+				Point.of(containingBounds.getCenterX(), containingBounds.getCenterY());
 		}
 
 		groupVertices(controller, text, selectedVertices, location);
@@ -385,13 +386,13 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 	}
 
 	public void groupVertices(FGController controller, String groupVertexText,
-			Set<FGVertex> groupedVertices, Point2D groupVertexLocation) {
+			Set<FGVertex> groupedVertices, Point groupVertexLocation) {
 
 		groupVertices(controller, groupVertexText, groupedVertices, groupVertexLocation, false);
 	}
 
 	private void groupVertices(FGController controller, String groupVertexText,
-			Set<FGVertex> groupedVertices, Point2D groupVertexLocation, boolean isRegroup) {
+			Set<FGVertex> groupedVertices, Point groupVertexLocation, boolean isRegroup) {
 
 		int vertexCount = groupedVertices.size();
 		if (vertexCount == 0) {
@@ -431,20 +432,20 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 	 * @param groupVertex The group vertex to be ungrouped
 	 * @param groupVertexLocation The default groupVertex location (only used if not
 	 * 							  performing a relayout).
-	 * @param relayoutOverride true signals to always relayout the graph after grouping; false
-	 *                         indicates to use the tool's options to decide
-	 * @param animate whether to animate
+//	 * @param relayoutOverride true signals to always relayout the graph after grouping; false
+//	 *                         indicates to use the tool's options to decide
+//	 * @param animate whether to animate
 	 * @return true if the given group was added to the graph
 	 */
 	public boolean installGroupVertex(FGController controller,
-			GroupedFunctionGraphVertex groupVertex, Point2D groupVertexLocation) {
+			GroupedFunctionGraphVertex groupVertex, Point groupVertexLocation) {
 
 		return installGroupVertex(controller, groupVertex, groupVertexLocation, false, false,
 			false);
 	}
 
 	private boolean installGroupVertex(FGController controller,
-			GroupedFunctionGraphVertex groupVertex, Point2D groupVertexLocation,
+			GroupedFunctionGraphVertex groupVertex, Point groupVertexLocation,
 			boolean relayoutOverride, boolean animate, boolean isRegroup) {
 
 		boolean doAnimate = animate & isAnimationEnabled(); // never animate when the user has disabled it
@@ -494,7 +495,7 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 			Set<FGVertex> ungroupedVertices, Set<FGEdge> ungroupedEdges) {
 
 		for (FGVertex vertex : ungroupedVertices) {
-			Collection<FGEdge> inEdges = graph.getInEdges(vertex);
+			Collection<FGEdge> inEdges = graph.incomingEdgesOf(vertex);
 			if (inEdges == null) {
 				throw new AssertException(
 					"cannot group vertex--it is not in the graph: " + vertex.getTitle());
@@ -504,7 +505,7 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 				ungroupedEdges.add(edge);
 			}
 
-			Collection<FGEdge> outEdges = graph.getOutEdges(vertex);
+			Collection<FGEdge> outEdges = graph.outgoingEdgesOf(vertex);
 			for (FGEdge edge : outEdges) {
 				ungroupedEdges.add(edge);
 			}
@@ -538,7 +539,7 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 			}
 
 			FGEdge clonedEdge = edge.cloneEdge(startVertex, groupVertex);
-			graph.addEdge(clonedEdge, startVertex, groupVertex);
+			graph.addEdge(startVertex, groupVertex, clonedEdge);
 		}
 
 		for (FGEdge edge : ungroupedEdges) {
@@ -560,7 +561,7 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 			}
 
 			FGEdge clonedEdge = edge.cloneEdge(groupVertex, destinationVertex);
-			graph.addEdge(clonedEdge, groupVertex, destinationVertex);
+			graph.addEdge(groupVertex, destinationVertex, clonedEdge);
 		}
 
 	}
@@ -585,7 +586,7 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 		//
 		// First: create the new parent and child vertices from the given vertex
 		//
-		Layout<FGVertex, FGEdge> graphLayout = primaryViewer.getGraphLayout();
+		LayoutModel<FGVertex> graphLayout = primaryViewer.getVisualizationModel().getLayoutModel();
 		Graph<FGVertex, FGEdge> graph = graphLayout.getGraph();
 
 		boolean isOldVertexAnEntry = vertexToSplit.isEntry();
@@ -639,8 +640,8 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 		// -move the edge(s) coming out of the old vertex to the new child vertex
 		// -add a fallthrough edge between the two new vertices
 		//
-		Collection<FGEdge> oldInEdges = graph.getInEdges(vertexToSplit);
-		Collection<FGEdge> oldOutEdges = graph.getOutEdges(vertexToSplit);
+		Collection<FGEdge> oldInEdges = graph.incomingEdgesOf(vertexToSplit);
+		Collection<FGEdge> oldOutEdges = graph.outgoingEdgesOf(vertexToSplit);
 
 		// copy to keep a reference, as given collection is backed by the graph's state
 		oldInEdges = new ArrayList<>(oldInEdges);
@@ -650,20 +651,20 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 		for (FGEdge edge : oldInEdges) {
 			FGVertex oldStartVertex = edge.getStart();
 			FGEdge newEdge = edge.cloneEdge(oldStartVertex, parentVertex);
-			graph.addEdge(newEdge, oldStartVertex, parentVertex);
+			graph.addEdge(oldStartVertex, parentVertex, newEdge);
 		}
 
 		// ...now move the edges to the new child vertex
 		for (FGEdge edge : oldOutEdges) {
 			FGVertex oldDestinationVertex = edge.getEnd();
-			graph.addEdge(edge.cloneEdge(childVertex, oldDestinationVertex), childVertex,
-				oldDestinationVertex);
+			graph.addEdge(childVertex,
+				oldDestinationVertex, edge.cloneEdge(childVertex, oldDestinationVertex));
 		}
 
 		// ...now connect the two new vertices
 		FGEdge edge = new FGEdgeImpl(parentVertex, childVertex, RefType.FALL_THROUGH,
 			controller.getFunctionGraphOptions());
-		graph.addEdge(edge, parentVertex, childVertex);
+		graph.addEdge(parentVertex, childVertex, edge);
 
 		//
 		// Third: Create the animator to smooth the process.  The animator will not
@@ -693,12 +694,12 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 		//
 		// First: create the new vertex from the given vertex and its parent
 		//
-		Layout<FGVertex, FGEdge> graphLayout = primaryViewer.getGraphLayout();
+		LayoutModel<FGVertex> graphLayout = primaryViewer.getVisualizationModel().getLayoutModel();
 		Graph<FGVertex, FGEdge> graph = graphLayout.getGraph();
 
 		// we assume that the client has verified that there is only one fallthrough edge to
 		// this vertex
-		Collection<FGEdge> parentChildEdges = graph.getInEdges(childVertex);
+		Collection<FGEdge> parentChildEdges = graph.incomingEdgesOf(childVertex);
 		FGEdge parentChildEdge = parentChildEdges.iterator().next();
 		FGVertex parentVertex = parentChildEdge.getStart();
 		if (parentVertex instanceof GroupedFunctionGraphVertex) {
@@ -741,26 +742,26 @@ public class FGViewUpdater extends VisualGraphViewUpdater<FGVertex, FGEdge> {
 		//
 
 		// for the parent - first remove...
-		Collection<FGEdge> parentInEdges = graph.getInEdges(parentVertex);
+		Collection<FGEdge> parentInEdges = graph.incomingEdgesOf(parentVertex);
 		// copy to keep a reference, as given collection is backed by the graph's state
 		parentInEdges = new ArrayList<>(parentInEdges);
 
 		// ...now move
 		for (FGEdge edge : parentInEdges) {
 			FGVertex oldStartVertex = edge.getStart();
-			graph.addEdge(edge.cloneEdge(oldStartVertex, newVertex), oldStartVertex, newVertex);
+			graph.addEdge(oldStartVertex, newVertex, edge.cloneEdge(oldStartVertex, newVertex));
 		}
 
 		// for the previous child - first remove...
-		Collection<FGEdge> childOutEdges = graph.getOutEdges(childVertex);
+		Collection<FGEdge> childOutEdges = graph.outgoingEdgesOf(childVertex);
 		// copy to keep a reference, as given collection is backed by the graph's state
 		childOutEdges = new ArrayList<>(childOutEdges);
 
 		// ...now move
 		for (FGEdge edge : childOutEdges) {
 			FGVertex oldDestinationVertex = edge.getEnd();
-			graph.addEdge(edge.cloneEdge(newVertex, oldDestinationVertex), newVertex,
-				oldDestinationVertex);
+			graph.addEdge(newVertex,
+				oldDestinationVertex, edge.cloneEdge(newVertex, oldDestinationVertex));
 		}
 
 		//

@@ -18,13 +18,16 @@ package ghidra.graph.viewer.renderer;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.VisualizationServer.Paintable;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import ghidra.graph.viewer.GraphViewer;
 import ghidra.util.datastruct.FixedSizeStack;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.transform.MutableTransformer;
 
-public class MouseDebugPaintable implements Paintable {
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
+
+public class MouseDebugPaintable implements VisualizationServer.Paintable {
 
 	// the size can be bigger if needed
 	private FixedSizeStack<PaintableShape> shapes = new FixedSizeStack<>(30);

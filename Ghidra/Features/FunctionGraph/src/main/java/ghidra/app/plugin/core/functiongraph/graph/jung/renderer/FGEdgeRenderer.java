@@ -17,12 +17,12 @@ package ghidra.app.plugin.core.functiongraph.graph.jung.renderer;
 
 import java.awt.Color;
 
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.FunctionGraph;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
 import ghidra.app.plugin.core.functiongraph.mvc.FunctionGraphOptions;
 import ghidra.graph.viewer.renderer.ArticulatedEdgeRenderer;
+import org.jgrapht.Graph;
 
 /**
  * A renderer used by the Function Graph API to provide additional edge coloring, as 

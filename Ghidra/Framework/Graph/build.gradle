@@ -10,18 +10,20 @@ dependencies {
 	compile project(':Docking')
 	
 	// these are not used by the project, but indirectly by the jars listed below
-	compile "net.sf.jung:jung-api:2.1.1"        // used by jung-graph-impl
-	compile "net.sf.jung:jung-algorithms:2.1.1" // used by jung-visualization
+//	compile "net.sf.jung:jung-api:2.1.1"        // used by jung-graph-impl
+//	compile "net.sf.jung:jung-algorithms:2.1.1" // used by jung-visualization
 	
 	// this project uses these directly
-	compile "net.sf.jung:jung-graph-impl:2.1.1"
-	compile "net.sf.jung:jung-visualization:2.1.1"
+//	compile "net.sf.jung:jung-graph-impl:2.1.1"
+//	compile "net.sf.jung:jung-visualization:2.1.1"
+
+	compile "com.github.tomnelson:jungrapht-visualization:1.1"
 	
 	compile "org.jgrapht:jgrapht-core:1.5.0"
 	
 	// not using jgrapht-io code that depends on antlr, so exclude antlr
 	compile ("org.jgrapht:jgrapht-io:1.5.0") { exclude group: "org.antlr", module: "antlr4-runtime" }
 	
-	// These have abstract test classes and stubs needed by this module	
+	// These have abstract test classes and stubs needed by this module
 	testCompile project(path: ':Docking', configuration: 'testArtifacts')
 }

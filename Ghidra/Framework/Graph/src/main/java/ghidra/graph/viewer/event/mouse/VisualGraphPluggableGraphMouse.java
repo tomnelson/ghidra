@@ -18,11 +18,11 @@ package ghidra.graph.viewer.event.mouse;
 import java.awt.event.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.GraphMousePlugin;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
 import ghidra.util.Msg;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.control.GraphMousePlugin;
 
 /**
  * This is the class that controls which mouse plugins get installed into the graph.

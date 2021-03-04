@@ -15,15 +15,16 @@
  */
 package ghidra.graph.viewer.layout;
 
-import java.awt.*;
+import java.awt.Rectangle;
+import java.awt.Shape;
 import java.util.*;
 import java.util.List;
 import java.util.Map.Entry;
-
-import com.google.common.base.Function;
+import java.util.function.Function;
 
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * A class that holds row and column data for each vertex and edge.  
@@ -269,7 +270,7 @@ public class LayoutLocationMap<V, E> {
 			}
 
 			for (Point location : articulations) {
-				int row = location.y;
+				int row = (int)location.y;
 				if (row > minMax.maxRow) {
 					minMax.maxRow = row;
 				}
@@ -277,7 +278,7 @@ public class LayoutLocationMap<V, E> {
 					minMax.minRow = row;
 				}
 
-				int column = location.x;
+				int column = (int)location.x;
 				if (column > minMax.maxCol) {
 					minMax.maxCol = column;
 				}

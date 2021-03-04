@@ -20,10 +20,11 @@ import java.awt.Shape;
 import java.awt.geom.*;
 import java.util.Collection;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.VisualizationServer;
-import edu.uci.ics.jung.visualization.picking.ShapePickSupport;
 import ghidra.graph.viewer.*;
+import org.apache.logging.log4j.core.Layout;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.selection.ShapePickSupport;
 
 public class VisualGraphShapePickSupport<V extends VisualVertex, E extends VisualEdge<V>>
 		extends ShapePickSupport<V, E> {
@@ -33,9 +34,9 @@ public class VisualGraphShapePickSupport<V extends VisualVertex, E extends Visua
 	}
 
 	@Override
-	protected Collection<V> getFilteredVertices(Layout<V, E> layout) {
+	protected Collection<V> getFilteredVertices() {
 		return GraphViewerUtils.createCollectionWithZOrderBySelection(
-			super.getFilteredVertices(layout));
+			super.getFilteredVertices());
 	}
 
 	/**
@@ -49,7 +50,7 @@ public class VisualGraphShapePickSupport<V extends VisualVertex, E extends Visua
 	 * @return The closest edge to the given point; null if no edge near the point
 	 */
 	@Override
-	public E getEdge(Layout<V, E> layout, double viewSpaceX, double viewSpaceY) {
+	public E getEdge(LayoutModel<V> layout, double viewSpaceX, double viewSpaceY) {
 
 		Point2D viewSpacePoint = new Point2D.Double(viewSpaceX, viewSpaceY);
 		Point graphSpacePoint =
@@ -60,7 +61,7 @@ public class VisualGraphShapePickSupport<V extends VisualVertex, E extends Visua
 			graphSpacePoint.y - pickSize / 2, pickSize, pickSize);
 		E closestEdge = null;
 		double smallestDistance = Double.MAX_VALUE;
-		for (E e : getFilteredEdges(layout)) {
+		for (E e : getFilteredEdges()) {
 
 			Shape edgeShape = GraphViewerUtils.getEdgeShapeInGraphSpace(vv, e);
 			if (edgeShape == null) {

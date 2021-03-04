@@ -18,9 +18,9 @@ package ghidra.graph.viewer.event.mouse;
 import java.awt.event.MouseEvent;
 
 import docking.DockingUtils;
-import edu.uci.ics.jung.visualization.control.ScalingGraphMousePlugin;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.options.VisualGraphOptions;
+import org.jungrapht.visualization.control.ScalingGraphMousePlugin;
 
 /**
  * Overridden implementation that allows us to change scaling behavior through options.  This 
@@ -34,7 +34,8 @@ public class VisualGraphScalingGraphMousePlugin<V extends VisualVertex, E extend
 
 	public VisualGraphScalingGraphMousePlugin() {
 		// no modifiers set here--we will always check ourselves
-		super(new VisualGraphScalingControl(), 0, 1 / 1.1f, 1.1f);
+		super(ScalingGraphMousePlugin.builder().scalingControl(
+				new VisualGraphScalingControl()));
 		setZoomAtMouse(true); // this is a default that can be overridden in our scaler
 	}
 

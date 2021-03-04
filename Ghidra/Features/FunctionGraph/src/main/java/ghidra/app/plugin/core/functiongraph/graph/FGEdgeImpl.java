@@ -21,6 +21,7 @@ import java.util.*;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
 import ghidra.app.plugin.core.functiongraph.mvc.FunctionGraphOptions;
 import ghidra.program.model.symbol.FlowType;
+import org.jungrapht.visualization.layout.model.Point;
 
 public class FGEdgeImpl implements FGEdge {
 
@@ -29,7 +30,7 @@ public class FGEdgeImpl implements FGEdge {
 	private final FlowType flowType;
 	private final FunctionGraphOptions options;
 
-	private List<Point2D> layoutArticulationPoints = new ArrayList<>();
+	private List<Point> layoutArticulationPoints = new ArrayList<>();
 
 	boolean doHashCode = true;
 	int hashCode;
@@ -113,17 +114,18 @@ public class FGEdgeImpl implements FGEdge {
 	}
 
 	@Override
-	public List<Point2D> getArticulationPoints() {
+	public List<Point> getArticulationPoints() {
 		return layoutArticulationPoints;
 	}
 
 	@Override
-	public void setArticulationPoints(List<Point2D> layoutArticulationPoints) {
+	public void setArticulationPoints(List<Point> layoutArticulationPoints) {
 		if (layoutArticulationPoints == null) {
 			this.layoutArticulationPoints = Collections.emptyList();
 		}
 		else {
-			this.layoutArticulationPoints = Collections.unmodifiableList(layoutArticulationPoints);
+			this.layoutArticulationPoints = layoutArticulationPoints;
+					//Collections.unmodifiableList(layoutArticulationPoints);
 		}
 
 	}
@@ -151,9 +153,9 @@ public class FGEdgeImpl implements FGEdge {
 		FGEdgeImpl newEdge =
 			new FGEdgeImpl(newStartVertex, newDestinationVertex, flowType, options);
 
-		List<Point2D> newPoints = new ArrayList<>(layoutArticulationPoints.size());
-		for (Point2D point : layoutArticulationPoints) {
-			newPoints.add((Point2D) point.clone());
+		List<Point> newPoints = new ArrayList<>(layoutArticulationPoints.size());
+		for (Point point : layoutArticulationPoints) {
+			newPoints.add(point);
 		}
 		newEdge.layoutArticulationPoints = newPoints;
 

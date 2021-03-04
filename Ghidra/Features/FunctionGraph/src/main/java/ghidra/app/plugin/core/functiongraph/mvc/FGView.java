@@ -20,7 +20,6 @@ import java.util.Collection;
 
 import javax.swing.JComponent;
 
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.*;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
 import ghidra.graph.viewer.*;
@@ -31,6 +30,7 @@ import ghidra.program.util.ProgramLocation;
 import ghidra.program.util.ProgramSelection;
 import ghidra.util.SystemUtilities;
 import ghidra.util.task.BusyListener;
+import org.jgrapht.Graph;
 
 public class FGView extends VisualGraphView<FGVertex, FGEdge, FunctionGraph> {
 
@@ -201,7 +201,7 @@ public class FGView extends VisualGraphView<FGVertex, FGEdge, FunctionGraph> {
 	void refreshDisplayWithoutRebuilding() {
 		FunctionGraph functionGraph = functionGraphData.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 		for (FGVertex vertex : vertices) {
 			vertex.refreshDisplay();
 		}

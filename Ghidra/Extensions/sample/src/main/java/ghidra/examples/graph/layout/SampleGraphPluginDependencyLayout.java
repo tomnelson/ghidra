@@ -24,6 +24,7 @@ import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.layout.AbstractVisualGraphLayout;
 import ghidra.graph.viewer.layout.GridLocationMap;
 import ghidra.util.exception.CancelledException;
+import org.jgrapht.Graph;
 
 /**
  * A custom layout to arrange the plugin vertices of the {@link SampleGraphPlugin}, using
@@ -38,7 +39,11 @@ public class SampleGraphPluginDependencyLayout
 
 	@Override
 	public SampleGraph getVisualGraph() {
-		return (SampleGraph) getGraph();
+		Graph<SampleVertex, SampleEdge> graph = getGraph();
+		if (graph instanceof SampleGraph) {
+			return (SampleGraph) graph;
+		}
+		return null;
 	}
 
 	@Override

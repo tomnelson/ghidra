@@ -20,10 +20,10 @@ import static org.junit.Assert.*;
 import java.util.Collection;
 import java.util.Set;
 
+import org.jgrapht.Graph;
 import org.junit.Before;
 import org.junit.Test;
 
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
 import ghidra.app.plugin.core.functiongraph.graph.FunctionGraph;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
@@ -267,7 +267,7 @@ public class FunctionGraphGroupVertices3Test extends AbstractFunctionGraphTest {
 		FunctionGraph functionGraph = graphData.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
 	
-		Collection<FGEdge> originalEdges = graph.getEdges();
+		Collection<FGEdge> originalEdges = graph.edgeSet();
 	
 		Set<FGVertex> ungroupedVertices =
 			selectVertices(functionGraph, "01002d2b" /* Another Local*/, "01002d1f" /* MyLocal */);

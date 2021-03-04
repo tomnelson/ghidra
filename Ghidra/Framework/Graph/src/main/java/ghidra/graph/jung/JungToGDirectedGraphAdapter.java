@@ -16,14 +16,17 @@
 package ghidra.graph.jung;
 
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.util.EdgeType;
-import edu.uci.ics.jung.graph.util.Pair;
 import ghidra.graph.GDirectedGraph;
 import ghidra.graph.GEdge;
 import ghidra.util.Msg;
+import org.jgrapht.Graph;
+import org.jgrapht.Graphs;
+import org.jungrapht.visualization.layout.algorithms.util.Pair;
 
 /**
  * A class that turns a {@link Graph} into a {@link GDirectedGraph}.
@@ -41,7 +44,7 @@ public class JungToGDirectedGraphAdapter<V, E extends GEdge<V>> implements GDire
 
 	@Override
 	public void addEdge(E e) {
-		delegate.addEdge(e, e.getStart(), e.getEnd());
+		delegate.addEdge(e.getStart(), e.getEnd(), e);
 	}
 
 	@Override
@@ -78,12 +81,12 @@ public class JungToGDirectedGraphAdapter<V, E extends GEdge<V>> implements GDire
 		JungToGDirectedGraphAdapter<V, E> newGraph =
 			(JungToGDirectedGraphAdapter<V, E>) emptyCopy();
 
-		for (V v : delegate.getVertices()) {
+		for (V v : delegate.vertexSet()) {
 			newGraph.addVertex(v);
 		}
 
-		for (E e : delegate.getEdges()) {
-			newGraph.delegate.addEdge(e, e.getStart(), e.getEnd());
+		for (E e : delegate.edgeSet()) {
+			newGraph.delegate.addEdge(e.getStart(), e.getEnd(), e);
 		}
 
 		return newGraph;
@@ -96,22 +99,22 @@ public class JungToGDirectedGraphAdapter<V, E extends GEdge<V>> implements GDire
 
 	@Override
 	public Collection<E> getEdges() {
-		return delegate.getEdges();
+		return delegate.edgeSet();
 	}
 
 	@Override
 	public Collection<E> getInEdges(V vertex) {
-		return delegate.getInEdges(vertex);
+		return delegate.incomingEdgesOf(vertex);
 	}
 
 	@Override
 	public Collection<V> getVertices() {
-		return delegate.getVertices();
+		return delegate.vertexSet();
 	}
 
 	@Override
 	public Collection<E> getOutEdges(V vertex) {
-		return delegate.getOutEdges(vertex);
+		return delegate.outgoingEdgesOf(vertex);
 	}
 
 	@Override
@@ -121,7 +124,7 @@ public class JungToGDirectedGraphAdapter<V, E extends GEdge<V>> implements GDire
 
 	@Override
 	public Collection<V> getPredecessors(V vertex) {
-		return delegate.getPredecessors(vertex);
+		return Graphs.predecessorListOf(delegate, vertex);
 	}
 
 	@Override
@@ -131,75 +134,77 @@ public class JungToGDirectedGraphAdapter<V, E extends GEdge<V>> implements GDire
 
 	@Override
 	public int getEdgeCount() {
-		return delegate.getEdgeCount();
+		return delegate.edgeSet().size();
 	}
 
 	@Override
 	public Collection<V> getSuccessors(V vertex) {
-		return delegate.getSuccessors(vertex);
+		return Graphs.successorListOf(delegate, vertex);
 	}
 
 	@Override
 	public int getVertexCount() {
-		return delegate.getVertexCount();
+		return delegate.vertexSet().size();
 	}
 
 	public Collection<V> getNeighbors(V vertex) {
-		return delegate.getNeighbors(vertex);
+		return Graphs.neighborListOf(delegate, vertex);
 	}
 
 	public int inDegree(V vertex) {
-		return delegate.inDegree(vertex);
+		return delegate.inDegreeOf(vertex);
 	}
 
 	@Override
 	public Collection<E> getIncidentEdges(V vertex) {
-		return delegate.getIncidentEdges(vertex);
+		return delegate.edgesOf(vertex);
 	}
 
 	public int outDegree(V vertex) {
-		return delegate.outDegree(vertex);
+		return delegate.outDegreeOf(vertex);
 	}
 
 	public Collection<V> getIncidentVertices(E edge) {
-		return delegate.getIncidentVertices(edge);
+		return Arrays.asList(delegate.getEdgeSource(edge), delegate.getEdgeTarget(edge));
 	}
 
 	public boolean isPredecessor(V v1, V v2) {
-		return delegate.isPredecessor(v1, v2);
+		return Graphs.predecessorListOf(delegate,v1).contains(v2);
+//				delegate.isPredecessor(v1, v2);
 	}
 
 	public boolean isSuccessor(V v1, V v2) {
-		return delegate.isSuccessor(v1, v2);
+		return Graphs.successorListOf(delegate, v1).contains(v2);
 	}
 
 	@Override
 	public E findEdge(V v1, V v2) {
-		return delegate.findEdge(v1, v2);
+		return delegate.getEdge(v1, v2);
 	}
 
 	public int getPredecessorCount(V vertex) {
-		return delegate.getPredecessorCount(vertex);
+		return getPredecessors(vertex).size();
 	}
 
 	public int getSuccessorCount(V vertex) {
-		return delegate.getSuccessorCount(vertex);
+		return getSuccessors(vertex).size();
 	}
 
 	public V getSource(E directed_edge) {
-		return delegate.getSource(directed_edge);
+		return delegate.getEdgeSource(directed_edge);
 	}
 
 	public Collection<E> findEdgeSet(V v1, V v2) {
-		return delegate.findEdgeSet(v1, v2);
+		return delegate.getAllEdges(v1, v2);
 	}
 
 	public V getDest(E directed_edge) {
-		return delegate.getDest(directed_edge);
+		return delegate.getEdgeTarget(directed_edge);
 	}
 
 	public boolean isSource(V vertex, E edge) {
-		return delegate.isSource(vertex, edge);
+		return delegate.getEdgeSource(edge).equals(vertex);
+//				delegate.isSource(vertex, edge);
 	}
 
 	@Override
@@ -208,26 +213,30 @@ public class JungToGDirectedGraphAdapter<V, E extends GEdge<V>> implements GDire
 	}
 
 	public boolean isDest(V vertex, E edge) {
-		return delegate.isDest(vertex, edge);
+		return delegate.getEdgeTarget(edge).equals(vertex);
 	}
 
 	public boolean addEdge(E edge, Collection<? extends V> vertices) {
-		return delegate.addEdge(edge, vertices);
+		if (vertices.size() < 2) {
+			return false;
+		}
+		List<V> vertexList = new ArrayList(vertices);
+		return delegate.addEdge(vertexList.get(0), vertexList.get(1), edge);
 	}
 
 	public boolean addEdge(E e, V v1, V v2) {
-		return delegate.addEdge(e, v1, v2);
+		return delegate.addEdge(v1, v2, e);
 	}
 
-	public boolean addEdge(E edge, Collection<? extends V> vertices, EdgeType edge_type) {
-		return delegate.addEdge(edge, vertices, edge_type);
-	}
+//	public boolean addEdge(E edge, Collection<? extends V> vertices, EdgeType edge_type) {
+//		return delegate.addEdge(edge, vertices, edge_type);
+//	}
 
-	public boolean addEdge(E e, V v1, V v2, EdgeType edgeType) {
-		return delegate.addEdge(e, v1, v2, edgeType);
-	}
-
-	@Override
+//	public boolean addEdge(E e, V v1, V v2, EdgeType edgeType) {
+//		return delegate.addEdge(e, v1, v2, edgeType);
+//	}
+//
+//	@Override
 	public boolean removeVertex(V vertex) {
 		return delegate.removeVertex(vertex);
 	}
@@ -243,11 +252,18 @@ public class JungToGDirectedGraphAdapter<V, E extends GEdge<V>> implements GDire
 	}
 
 	public Pair<V> getEndpoints(E edge) {
-		return delegate.getEndpoints(edge);
+		return Pair.of(delegate.getEdgeSource(edge), delegate.getEdgeTarget(edge));
 	}
 
 	public V getOpposite(V vertex, E edge) {
-		return delegate.getOpposite(vertex, edge);
+		Pair<V> endpoints = getEndpoints(edge);
+		if (endpoints.first.equals(vertex)) {
+			return endpoints.second;
+		}
+		if (endpoints.second.equals(vertex)) {
+			return endpoints.first;
+		}
+		return null;
 	}
 
 	@Override
@@ -256,39 +272,42 @@ public class JungToGDirectedGraphAdapter<V, E extends GEdge<V>> implements GDire
 	}
 
 	public boolean isNeighbor(V v1, V v2) {
-		return delegate.isNeighbor(v1, v2);
+		return getNeighbors(v1).contains(v2);
+//		return delegate.isNeighbor(v1, v2);
 	}
 
 	public boolean isIncident(V vertex, E edge) {
-		return delegate.isIncident(vertex, edge);
+		return getIncidentVertices(edge).contains(vertex);
+//		return delegate.isIncident(vertex, edge);
 	}
 
 	public int degree(V vertex) {
-		return delegate.degree(vertex);
+		return delegate.degreeOf(vertex);
 	}
 
 	public int getNeighborCount(V vertex) {
-		return delegate.getNeighborCount(vertex);
+		return getNeighbors(vertex).size();
 	}
 
 	public int getIncidentCount(E edge) {
-		return delegate.getIncidentCount(edge);
+
+		return 2;
 	}
 
-	public EdgeType getEdgeType(E edge) {
-		return delegate.getEdgeType(edge);
-	}
+//	public EdgeType getEdgeType(E edge) {
+//		return delegate.getEdgeType(edge);
+//	}
 
-	public EdgeType getDefaultEdgeType() {
-		return delegate.getDefaultEdgeType();
-	}
+//	public EdgeType getDefaultEdgeType() {
+//		return delegate.getDefaultEdgeType();
+//	}
 
-	public Collection<E> getEdges(EdgeType edge_type) {
-		return delegate.getEdges(edge_type);
-	}
+//	public Collection<E> getEdges(EdgeType edge_type) {
+//		return delegate.getEdges(edge_type);
+//	}
 
-	public int getEdgeCount(EdgeType edge_type) {
-		return delegate.getEdgeCount(edge_type);
-	}
+//	public int getEdgeCount(EdgeType edge_type) {
+//		return delegate.getEdgeCount(edge_type);
+//	}
 
 }

@@ -22,11 +22,15 @@ import java.util.Objects;
 
 import javax.swing.*;
 
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.picking.PickedState;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.event.picking.GPickedState;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.selection.MutableSelectedState;
+import org.jungrapht.visualization.selection.SelectedState;
+import org.jungrapht.visualization.transform.MutableTransformer;
+
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 /**
  * A class that knows how and where a given vertex was clicked.  Further, this class knows how 
@@ -98,8 +102,8 @@ public class VertexMouseInfo<V extends VisualVertex, E extends VisualEdge<V>> {
 	}
 
 	public boolean isVertexSelected() {
-		PickedState<V> pickedVertexState = viewer.getPickedVertexState();
-		return pickedVertexState.isPicked(vertex);
+		SelectedState<V> pickedVertexState = viewer.getSelectedVertexState();
+		return pickedVertexState.isSelected(vertex);
 	}
 
 	/**
@@ -111,13 +115,13 @@ public class VertexMouseInfo<V extends VisualVertex, E extends VisualEdge<V>> {
 	 */
 	public void selectVertex(boolean addToSelection) {
 		// when the user manually clicks a vertex, we no longer want an edge selected
-		PickedState<E> pickedEdgeState = viewer.getPickedEdgeState();
+		MutableSelectedState<E> pickedEdgeState = viewer.getSelectedEdgeState();
 		pickedEdgeState.clear();
 		if (isVertexSelected()) {
 			return;
 		}
 
-		GPickedState<V> pickedState = viewer.getGPickedVertexState();
+		GPickedState<V> pickedState = viewer.getGSelectedVertexState();
 		pickedState.pickToSync(vertex, addToSelection);
 	}
 

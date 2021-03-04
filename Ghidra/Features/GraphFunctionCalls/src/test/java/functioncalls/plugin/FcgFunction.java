@@ -16,10 +16,10 @@
 package functioncalls.plugin;
 
 import java.util.*;
+import java.util.function.Function;
 
 import ghidra.program.model.FunctionTestDouble;
 import ghidra.program.model.address.Address;
-import ghidra.program.model.listing.Function;
 import ghidra.util.task.TaskMonitor;
 
 /**

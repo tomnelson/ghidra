@@ -17,16 +17,12 @@ package ghidra.graph.graphs;
 
 import static util.CollectionUtils.nonNull;
 
-import java.awt.Point;
-import java.awt.geom.Point2D;
 import java.util.*;
 
 import org.apache.commons.collections4.IterableUtils;
 
 import com.google.common.collect.Iterables;
 
-import edu.uci.ics.jung.graph.util.EdgeType;
-import edu.uci.ics.jung.graph.util.Pair;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.event.VisualGraphChangeListener;
 import ghidra.graph.viewer.VisualEdge;
@@ -35,6 +31,7 @@ import ghidra.graph.viewer.layout.LayoutListener.ChangeType;
 import ghidra.graph.viewer.layout.VisualGraphLayout;
 import ghidra.util.datastruct.WeakDataStructureFactory;
 import ghidra.util.datastruct.WeakSet;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * A default {@link VisualGraph} that implements basic setup for things like event processing.
@@ -150,8 +147,8 @@ public abstract class DefaultVisualGraph<V extends VisualVertex,
 	}
 
 	@Override
-	public void vertexLocationChanged(V v, Point point, ChangeType type) {
-		// stub
+	public void vertexLocationChanged(V v, java.awt.Point point, ChangeType type) {
+//		 stub
 	}
 
 	public void dispose() {
@@ -175,8 +172,9 @@ public abstract class DefaultVisualGraph<V extends VisualVertex,
 			return;
 		}
 
-		Point2D location = layout.apply(v);
-		v.setLocation(location);
+//		Point location = getLayout().layoutModel().apply(v);
+//
+//		v.setLocation(location);
 	}
 
 	/**
@@ -230,14 +228,14 @@ public abstract class DefaultVisualGraph<V extends VisualVertex,
 		return added;
 	}
 
-	@Override
-	public boolean addEdge(E edge, Pair<? extends V> endpoints, EdgeType edgeType) {
-		boolean added = super.addEdge(edge, endpoints, edgeType);
-		if (added) {
-			fireEdgesAdded(Arrays.asList(edge));
-		}
-		return added;
-	}
+//	@Override
+//	public boolean addEdge(E edge, Pair<? extends V> endpoints, EdgeType edgeType) {
+//		boolean added = super.addEdge(edge, endpoints, edgeType);
+//		if (added) {
+//			fireEdgesAdded(Arrays.asList(edge));
+//		}
+//		return added;
+//	}
 
 	@Override
 	public boolean removeVertex(V v) {

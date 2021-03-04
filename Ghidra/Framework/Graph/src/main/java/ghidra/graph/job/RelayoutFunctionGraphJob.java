@@ -24,6 +24,7 @@ import org.jdesktop.animation.timing.interpolation.PropertySetter;
 
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.layout.LayoutPositions;
+import org.jungrapht.visualization.layout.model.Point;
 
 public class RelayoutFunctionGraphJob<V extends VisualVertex, E extends VisualEdge<V>>
 		extends AbstractGraphTransitionJob<V, E> {
@@ -70,7 +71,7 @@ public class RelayoutFunctionGraphJob<V extends VisualVertex, E extends VisualEd
 		// 
 
 		LayoutPositions<V, E> futurePositions = calculateDefaultLayoutLocations();
-		Map<V, Point2D> destinationLocations = futurePositions.getVertexLocations();
+		Map<V, Point> destinationLocations = futurePositions.getVertexLocations();
 		finalEdgeArticulations = futurePositions.getEdgeArticulations();
 
 		//
@@ -78,10 +79,10 @@ public class RelayoutFunctionGraphJob<V extends VisualVertex, E extends VisualEd
 		//
 		Collection<V> vertices = graph.getVertices();
 		for (V vertex : vertices) {
-			Point2D currentPoint = toLocation(vertex);
-			Point2D startPoint = (Point2D) currentPoint.clone();
-			Point2D vertexPoint = destinationLocations.get(vertex);
-			Point2D destinationPoint = (Point2D) vertexPoint.clone();
+			Point currentPoint = toLocation(vertex);
+			Point startPoint = currentPoint;
+			Point vertexPoint = destinationLocations.get(vertex);
+			Point destinationPoint = vertexPoint;
 			TransitionPoints transitionPoints = new TransitionPoints(startPoint, destinationPoint);
 			vertexLocations.put(vertex, transitionPoints);
 		}
@@ -89,12 +90,12 @@ public class RelayoutFunctionGraphJob<V extends VisualVertex, E extends VisualEd
 		//
 		// We have to move edge articulations--create transition points.
 		//
-		Map<E, List<Point2D>> edgeArticulations = futurePositions.getEdgeArticulations();
-		Set<Entry<E, List<Point2D>>> entrySet = edgeArticulations.entrySet();
-		for (Entry<E, List<Point2D>> entry : entrySet) {
+		Map<E, List<Point>> edgeArticulations = futurePositions.getEdgeArticulations();
+		Set<Entry<E, List<Point>>> entrySet = edgeArticulations.entrySet();
+		for (Entry<E, List<Point>> entry : entrySet) {
 			E edge = entry.getKey();
-			List<Point2D> currentArticulations = edge.getArticulationPoints();
-			List<Point2D> newArticulations = entry.getValue();
+			List<Point> currentArticulations = edge.getArticulationPoints();
+			List<Point> newArticulations = entry.getValue();
 			List<ArticulationTransitionPoints> transitionPoints = getArticulationTransitionPoints(
 				currentArticulations, newArticulations, destinationLocations, edge);
 
@@ -103,8 +104,8 @@ public class RelayoutFunctionGraphJob<V extends VisualVertex, E extends VisualEd
 	}
 
 	private List<ArticulationTransitionPoints> getArticulationTransitionPoints(
-			List<Point2D> currentArticulations, List<Point2D> newArticulations,
-			Map<V, Point2D> destinationLocations, E edge) {
+			List<Point> currentArticulations, List<Point> newArticulations,
+			Map<V, Point> destinationLocations, E edge) {
 
 		if (currentArticulations.size() > newArticulations.size()) {
 			return getArticulationTransitionPointsWhenStartingWithMorePoints(currentArticulations,
@@ -115,8 +116,8 @@ public class RelayoutFunctionGraphJob<V extends VisualVertex, E extends VisualEd
 	}
 
 	private List<ArticulationTransitionPoints> getArticulationTransitionPointsWhenStartingWithLessPoints(
-			List<Point2D> currentArticulations, List<Point2D> newArticulations,
-			Map<V, Point2D> destinationLocations, E edge) {
+			List<Point> currentArticulations, List<Point> newArticulations,
+			Map<V, Point> destinationLocations, E edge) {
 
 		List<ArticulationTransitionPoints> transitionPoints = new ArrayList<>();
 
@@ -124,14 +125,14 @@ public class RelayoutFunctionGraphJob<V extends VisualVertex, E extends VisualEd
 		// We will have to add articulations to the current edge now so that we can
 		// animate their creation.
 		//
-		List<Point2D> newStartArticulationsPoints = new ArrayList<>();
+		List<Point> newStartArticulationsPoints = new ArrayList<>();
 
 		// default to start vertex so to handle the case where we started with no articulations
-		Point2D lastValidStartPoint = toLocation(edge.getStart());
+		Point lastValidStartPoint = toLocation(edge.getStart());
 		for (int i = 0; i < newArticulations.size(); i++) {
-			Point2D endPoint = newArticulations.get(i);
+			Point endPoint = newArticulations.get(i);
 
-			Point2D startPoint = (Point2D) lastValidStartPoint.clone();
+			Point startPoint =lastValidStartPoint;
 			if (i < currentArticulations.size()) {
 				// prefer the new articulations, while we have some
 				startPoint = currentArticulations.get(i);
@@ -148,15 +149,15 @@ public class RelayoutFunctionGraphJob<V extends VisualVertex, E extends VisualEd
 	}
 
 	private List<ArticulationTransitionPoints> getArticulationTransitionPointsWhenStartingWithMorePoints(
-			List<Point2D> currentArticulations, List<Point2D> newArticulations,
-			Map<V, Point2D> destinationLocations, E edge) {
+			List<Point> currentArticulations, List<Point> newArticulations,
+			Map<V, Point> destinationLocations, E edge) {
 
 		List<ArticulationTransitionPoints> transitionPoints = new ArrayList<>();
 
 		for (int i = 0; i < currentArticulations.size(); i++) {
 
-			Point2D startPoint = currentArticulations.get(i);
-			Point2D endPoint = (Point2D) startPoint.clone();
+			Point startPoint = currentArticulations.get(i);
+			Point endPoint = startPoint;
 			if (i < newArticulations.size()) {
 				// prefer the new articulations, while we have some
 				endPoint = newArticulations.get(i);

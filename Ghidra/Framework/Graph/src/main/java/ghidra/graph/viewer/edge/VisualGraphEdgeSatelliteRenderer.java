@@ -17,11 +17,11 @@ package ghidra.graph.viewer.edge;
 
 import java.awt.Shape;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.RenderContext;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.layout.model.LayoutModel;
 
 /**
  * A renderer designed to override default edge rendering to NOT paint emphasizing effects.  We
@@ -61,12 +61,12 @@ public class VisualGraphEdgeSatelliteRenderer<V extends VisualVertex, E extends 
 
 	@Override
 	public Shape getEdgeShape(RenderContext<V, E> rc, Graph<V, E> graph, E e, float x1, float y1,
-			float x2, float y2, boolean isLoop, Shape vertexShape) {
+							  float x2, float y2, boolean isLoop, Shape vertexShape) {
 		return rendererDelegate.getEdgeShape(rc, graph, e, x1, y1, x2, y2, isLoop, vertexShape);
 	}
 
 	@Override
-	protected Shape getVertexShapeForArrow(RenderContext<V, E> rc, Layout<V, E> layout, V v) {
+	protected Shape getVertexShapeForArrow(RenderContext<V, E> rc, LayoutModel<V> layout, V v) {
 		// we use the default shape (the full shape) for arrow detection
 		return getCompactShape(rc, layout, v);
 	}

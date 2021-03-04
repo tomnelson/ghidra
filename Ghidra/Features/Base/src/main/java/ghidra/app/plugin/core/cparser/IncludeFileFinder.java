@@ -43,7 +43,7 @@ public class IncludeFileFinder {
 		List<IncludeFile> includeFileList = findIncludeFiles(recursive);
 
 		GDirectedGraph<IncludeFile, GEdge<IncludeFile>> g =
-			new JungDirectedGraph<IncludeFile, GEdge<IncludeFile>>();
+			new JungDirectedGraph<>();
 
 		processIncludeFiles(includeFileList, g);
 		Set<IncludeFile> roots = GraphAlgorithms.getEntryPoints(g);

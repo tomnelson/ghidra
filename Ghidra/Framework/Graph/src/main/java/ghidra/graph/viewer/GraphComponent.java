@@ -15,15 +15,6 @@
  */
 package ghidra.graph.viewer;
 
-import java.awt.*;
-import java.awt.event.*;
-import java.awt.geom.Point2D;
-import java.util.*;
-
-import javax.swing.*;
-
-import com.google.common.base.Function;
-
 import docking.DockingUtils;
 import docking.DockingWindowManager;
 import docking.actions.KeyBindingUtils;
@@ -31,21 +22,16 @@ import docking.help.HelpService;
 import docking.widgets.EmptyBorderButton;
 import docking.widgets.PopupWindow;
 import docking.widgets.label.GIconLabel;
-import edu.uci.ics.jung.algorithms.layout.GraphElementAccessor;
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.VisualizationServer.Paintable;
-import edu.uci.ics.jung.visualization.control.AbstractGraphMousePlugin;
-import edu.uci.ics.jung.visualization.decorators.PickableVertexPaintTransformer;
-import edu.uci.ics.jung.visualization.decorators.ToStringLabeller;
-import edu.uci.ics.jung.visualization.picking.PickedState;
-import edu.uci.ics.jung.visualization.picking.ShapePickSupport;
-import edu.uci.ics.jung.visualization.renderers.Renderer;
-import edu.uci.ics.jung.visualization.util.Caching;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.event.VisualGraphChangeListener;
-import ghidra.graph.viewer.edge.*;
-import ghidra.graph.viewer.event.mouse.*;
+import ghidra.graph.viewer.edge.VisualEdgeRenderer;
+import ghidra.graph.viewer.edge.VisualGraphEdgeSatelliteRenderer;
+import ghidra.graph.viewer.edge.VisualGraphEdgeStrokeTransformer;
+import ghidra.graph.viewer.edge.VisualGraphPathHighlighter;
+import ghidra.graph.viewer.event.mouse.VertexMouseInfo;
+import ghidra.graph.viewer.event.mouse.VisualGraphHoverMousePlugin;
+import ghidra.graph.viewer.event.mouse.VisualGraphMousePlugin;
+import ghidra.graph.viewer.event.mouse.VisualGraphPluggableGraphMouse;
 import ghidra.graph.viewer.event.picking.GPickedState;
 import ghidra.graph.viewer.event.picking.PickListener;
 import ghidra.graph.viewer.layout.LayoutListener;
@@ -54,13 +40,64 @@ import ghidra.graph.viewer.options.ViewRestoreOption;
 import ghidra.graph.viewer.options.VisualGraphOptions;
 import ghidra.graph.viewer.satellite.CachingSatelliteGraphViewer;
 import ghidra.graph.viewer.shape.VisualGraphShapePickSupport;
-import ghidra.graph.viewer.vertex.*;
+import ghidra.graph.viewer.vertex.VertexClickListener;
+import ghidra.graph.viewer.vertex.VertexFocusListener;
+import ghidra.graph.viewer.vertex.VisualGraphVertexShapeTransformer;
+import ghidra.graph.viewer.vertex.VisualVertexRenderer;
 import ghidra.util.HTMLUtilities;
 import ghidra.util.HelpLocation;
 import ghidra.util.exception.AssertException;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.control.AbstractGraphMousePlugin;
+import org.jungrapht.visualization.control.GraphElementAccessor;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.layout.util.Caching;
+import org.jungrapht.visualization.renderers.Renderer;
+import org.jungrapht.visualization.selection.MutableSelectedState;
+import org.jungrapht.visualization.selection.SelectedState;
+import org.jungrapht.visualization.selection.ShapePickSupport;
+import org.jungrapht.visualization.util.PointUtils;
 import resources.Icons;
 import resources.ResourceManager;
 import util.CollectionUtils;
+
+import javax.swing.*;
+import java.awt.AlphaComposite;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Composite;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.LinearGradientPaint;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.Window;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.geom.Point2D;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * A component that contains primary and satellite graph views.  This viewer provides 
@@ -113,7 +150,7 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 	private JPanel undockedSatellitePanel;
 	private JButton showUndockedSatelliteButton;
 
-	private LayoutListener<V, E> layoutListener = new PrimaryLayoutListener();
+	private LayoutListener<V> layoutListener = new PrimaryLayoutListener();
 
 	private boolean isUninitialized = true; // another silly flag to know when we have been painted
 	private GraphPerspectiveInfo<V, E> graphPerspectiveInfo;
@@ -177,7 +214,7 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 		createGUIComponents(primaryViewer, satelliteViewer);
 
 		ToolTipManager.sharedInstance().registerComponent(primaryViewer);
-		ToolTipManager.sharedInstance().registerComponent(satelliteViewer);
+		ToolTipManager.sharedInstance().registerComponent(satelliteViewer.getComponent());
 	}
 
 	// template method
@@ -200,13 +237,16 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 
 		Color normal = Color.GREEN.darker().darker();
 		Color selected = Color.GREEN;
-		renderContext.setEdgeDrawPaintTransformer(e -> e.isSelected() ? selected : normal);
-		renderContext.setArrowDrawPaintTransformer(e -> e.isSelected() ? selected : normal);
-		renderContext.setArrowFillPaintTransformer(e -> e.isSelected() ? selected : normal);
+		renderContext.setEdgeDrawPaintFunction(e -> e.isSelected() ? selected : normal);
+		renderContext.setArrowDrawPaintFunction(e -> e.isSelected() ? selected : normal);
+		renderContext.setArrowFillPaintFunction(e -> e.isSelected() ? selected : normal);
 
-		PickedState<V> pickedVertexState = viewer.getPickedVertexState();
-		renderContext.setVertexFillPaintTransformer(
-			new PickableVertexPaintTransformer<>(pickedVertexState, Color.WHITE, Color.YELLOW));
+		SelectedState<V> pickedVertexState = viewer.getSelectedVertexState();
+		renderContext.setVertexFillPaintFunction(
+				n ->
+						pickedVertexState != null && pickedVertexState.isSelected(n)
+								? Color.WHITE
+								: Color.yellow);
 
 		viewer.setBackground(Color.WHITE);
 
@@ -237,7 +277,7 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 		multiLayerTransformer.addChangeListener(
 			event -> GraphViewerUtils.adjustEdgePickSizeForZoom(viewer));
 
-		gPickedState = viewer.getGPickedVertexState();
+		gPickedState = viewer.getGSelectedVertexState();
 		vertexPickingListener = new VertexPickingListener(graph);
 		gPickedState.addPickingListener(vertexPickingListener);
 
@@ -266,19 +306,19 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 
 		// this will paint thicker, but with the shape being used...which can look odd
 		//renderContext.setEdgeFillPaintTransformer(null);
-		PickedState<E> pickedEdgeState = viewer.getPickedEdgeState();
-		renderContext.setEdgeStrokeTransformer(
+		MutableSelectedState<E> pickedEdgeState = viewer.getSelectedEdgeState();
+		renderContext.setEdgeStrokeFunction(
 			new VisualGraphEdgeStrokeTransformer<>(pickedEdgeState, 3));
 		pickedEdgeState.addItemListener(new EdgePickingListener());
 
 		// the layout defines the shape of the edge (this gives the layout flexibility in how
 		// to render its shape)
-		Function<E, Shape> edgeTransformer = layout.getEdgeShapeTransformer();
-		renderContext.setEdgeShapeTransformer(edgeTransformer);
+		BiFunction<Graph<V,E>,E, Shape> edgeTransformer = layout.getEdgeShapeTransformer();
+		renderContext.setEdgeShapeFunction(edgeTransformer);
 
 		renderContext.setArrowPlacementTolerance(5.0f);
 
-		renderContext.setVertexShapeTransformer(new VisualGraphVertexShapeTransformer<>());
+		renderContext.setVertexShapeFunction(new VisualGraphVertexShapeTransformer<>());
 	}
 
 	// template method
@@ -297,8 +337,8 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 
 		SatelliteGraphViewer<V, E> viewer = createSatelliteGraphViewer(masterViewer, viewerSize);
 
-		viewer.setMinimumSize(viewerSize);
-		viewer.setMaximumSize(viewerSize);
+		viewer.getComponent().setMinimumSize(viewerSize);
+		viewer.getComponent().setMaximumSize(viewerSize);
 
 		satelliteGraphMouse = viewer.getGraphMouse();
 
@@ -322,12 +362,12 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 		renderer.setEdgeRenderer(new VisualGraphEdgeSatelliteRenderer<>(
 			(VisualEdgeRenderer<V, E>) layout.getEdgeRenderer()));
 
-		Function<E, Shape> edgeTransformer = layout.getEdgeShapeTransformer();
-		renderContext.setEdgeShapeTransformer(edgeTransformer);
+		BiFunction<Graph<V,E>,E, Shape> edgeTransformer = layout.getEdgeShapeTransformer();
+		renderContext.setEdgeShapeFunction(edgeTransformer);
 
-		renderContext.setVertexShapeTransformer(new VisualGraphVertexShapeTransformer<>());
+		renderContext.setVertexShapeFunction(new VisualGraphVertexShapeTransformer<>());
 
-		viewer.setVertexToolTipTransformer(new ToStringLabeller());
+		viewer.setVertexToolTipFunction(Object::toString);
 	}
 
 	private void createGUIComponents(final VisualizationViewer<V, E> viewer,
@@ -367,14 +407,14 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 
 		layeredPane.setPreferredSize(new Dimension(400, 400));
 
-		layeredPane.add(viewer, PRIMARY_VIEWER_LAYER);
+		layeredPane.add(viewer.getComponent(), PRIMARY_VIEWER_LAYER);
 
-		layeredPane.add(satellite, SATELLITE_VIEWER_LAYER);
+		layeredPane.add(satellite.getComponent(), SATELLITE_VIEWER_LAYER);
 		satellite.setDocked(true);
 
 		mainPanel.add(layeredPane, BorderLayout.CENTER);
 
-		satellite.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+		satellite.getComponent().setBorder(BorderFactory.createLineBorder(Color.BLACK));
 
 		undockedSatellitePanel = new JPanel(new BorderLayout());
 		undockedSatellitePanel.addComponentListener(new ComponentAdapter() {
@@ -399,8 +439,8 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 				PopupWindow.hideAllWindows();
 			}
 		};
-		viewer.addMouseListener(hidePopupMouseListener);
-		satellite.addMouseListener(hidePopupMouseListener);
+		viewer.getComponent().addMouseListener(hidePopupMouseListener);
+		satellite.getComponent().addMouseListener(hidePopupMouseListener);
 
 		KeyListener hidePopupKeyListener = new KeyAdapter() {
 			@Override
@@ -665,7 +705,7 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 	public void setVerticesSelected(Collection<V> vertices) {
 		gPickedState.clear();
 		for (V v : vertices) {
-			gPickedState.pick(v, true);
+			gPickedState.select(v, true);
 		}
 	}
 
@@ -679,7 +719,7 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 	}
 
 	public boolean isSatelliteComponent(Component c) {
-		return c == satelliteViewer;
+		return c == satelliteViewer.getComponent();
 	}
 
 	protected JComponent getSatelliteContentComponent() {
@@ -688,15 +728,15 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 
 	private void updateSatellite(boolean docked, boolean visible) {
 
-		layeredPane.remove(satelliteViewer);
-		undockedSatellitePanel.remove(satelliteViewer);
+		layeredPane.remove(satelliteViewer.getComponent());
+		undockedSatellitePanel.remove(satelliteViewer.getComponent());
 
 		if (visible) {
 			if (docked) {
-				layeredPane.add(satelliteViewer, SATELLITE_VIEWER_LAYER);
+				layeredPane.add(satelliteViewer.getComponent(), SATELLITE_VIEWER_LAYER);
 			}
 			else {
-				undockedSatellitePanel.add(satelliteViewer);
+				undockedSatellitePanel.add(satelliteViewer.getComponent());
 			}
 		}
 
@@ -734,7 +774,7 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 		if (isSatelliteShowing() == visible) {
 
 			if (visible && !isSatelliteDocked()) {
-				Window w = SwingUtilities.windowForComponent(satelliteViewer);
+				Window w = SwingUtilities.windowForComponent(satelliteViewer.getComponent());
 				w.toFront();
 			}
 
@@ -751,7 +791,7 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 		}
 
 		// it may be in another window--see if it is showing
-		return satelliteViewer.isShowing();
+		return satelliteViewer.getComponent().isShowing();
 	}
 
 	private void updateLayeredPaneComponentsForSizeChange() {
@@ -792,7 +832,7 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 			satelliteSize.height = newWidth;
 			int x = parentSize.width - satelliteSize.width;
 			int y = parentSize.height - satelliteSize.height;
-			satelliteViewer.setBounds(x, y, satelliteSize.width, satelliteSize.height);
+			satelliteViewer.getComponent().setBounds(x, y, satelliteSize.width, satelliteSize.height);
 		}
 
 		VisualGraphViewUpdater<V, E> viewUpdater = getViewUpdater();
@@ -873,33 +913,33 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 		// references and removing the data from Jung's graph
 		//
 
-		Layout<V, E> layout = primaryViewer.getGraphLayout();
+		LayoutModel<V> layout = primaryViewer.getVisualizationModel().getLayoutModel();
 		if (layout instanceof Caching) {
 			((Caching) layout).clear();
 		}
 
-		layout = satelliteViewer.getGraphLayout();
+		layout = satelliteViewer.getVisualizationModel().getLayoutModel();
 		if (layout instanceof Caching) {
 			((Caching) layout).clear();
 		}
 
 		gPickedState.removePickingListener(vertexPickingListener);
 
-		PickedState<V> vertexState = primaryViewer.getPickedVertexState();
+		MutableSelectedState<V> vertexState = primaryViewer.getSelectedVertexState();
 		vertexState.clear();
-		vertexState = satelliteViewer.getPickedVertexState();
+		vertexState = satelliteViewer.getSelectedVertexState();
 		vertexState.clear();
 
-		PickedState<E> edgeState = primaryViewer.getPickedEdgeState();
+		MutableSelectedState<E> edgeState = primaryViewer.getSelectedEdgeState();
 		edgeState.clear();
-		edgeState = primaryViewer.getPickedEdgeState();
+		edgeState = primaryViewer.getSelectedEdgeState();
 		edgeState.clear();
 
 		primaryViewer.dispose();
 
 		undockedSatellitePanel.removeAll();
 		undockedSatellitePanel.repaint();
-		satelliteViewer.removeAll();
+		satelliteViewer.getComponent().removeAll();
 
 		primaryGraphMouse.dispose();
 		satelliteGraphMouse.dispose();
@@ -920,16 +960,16 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 //==================================================================================================
 // Inner Classes
 //==================================================================================================
-	private class PrimaryLayoutListener implements LayoutListener<V, E> {
+	private class PrimaryLayoutListener implements LayoutListener<V> {
 
 		@Override
-		public void vertexLocationChanged(final V v, final Point2D newLocation,
+		public void vertexLocationChanged(final V v, final Point newLocation,
 				ChangeType changeType) {
 			if (isUninitialized) {
 				return; // can happen during setup
 			}
 
-			v.setLocation(newLocation);
+			v.setLocation(PointUtils.convert(newLocation));
 
 			if (changeType == ChangeType.RESTORE) {
 				// ignore these events, as they are a bulk operation and will be handled later
@@ -942,11 +982,11 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 			}
 
 			graph.vertexLocationChanged(v,
-				new Point((int) newLocation.getX(), (int) newLocation.getY()), changeType);
+				new java.awt.Point((int) newLocation.x, (int) newLocation.y), changeType);
 		}
 	}
 
-	private class MessagePaintable implements Paintable {
+	private class MessagePaintable implements VisualizationServer.Paintable {
 
 		private final Color backgroundColor = new Color(134, 180, 238);
 		private String message = null;
@@ -970,7 +1010,7 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 				font.getStringBounds(message, g2.getFontRenderContext()).getBounds();
 
 			Rectangle viewerBounds = primaryViewer.getBounds();
-			Point viewPosition = viewerBounds.getLocation();
+			java.awt.Point viewPosition = viewerBounds.getLocation();
 			int bottomY = (int) (viewPosition.y + viewerBounds.getHeight());
 
 			int startX = 0;
@@ -986,7 +1026,7 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 			float[] fractions = new float[] { 0.0f, .95f };
 			int upperY = backgroundY;
 			LinearGradientPaint bottomToTopGradiant = new LinearGradientPaint(
-				new Point(startX, startY), new Point(startX, upperY), fractions, colors);
+				new java.awt.Point(startX, startY), new java.awt.Point(startX, upperY), fractions, colors);
 
 			g2.setPaint(bottomToTopGradiant);
 			g2.fillRect(backgroundX, upperY, backgroundWidth, backgroundHeight);
@@ -1173,14 +1213,14 @@ public class GraphComponent<V extends VisualVertex, E extends VisualEdge<V>, G e
 
 			VisualizationViewer<V, E> vv = getViewer(e);
 			GraphElementAccessor<V, E> pickSupport = vv.getPickSupport();
-			Layout<V, E> layout = vv.getGraphLayout();
+			LayoutModel<V> layoutModel = vv.getVisualizationModel().getLayoutModel();
 			if (pickSupport == null) {
 				return false;
 			}
 
 			// p is the screen point for the mouse event
 			Point2D p = e.getPoint();
-			selectedVertex = pickSupport.getVertex(layout, p.getX(), p.getY());
+			selectedVertex = pickSupport.getVertex(layoutModel, p.getX(), p.getY());
 			if (selectedVertex == null) {
 				return false;
 			}

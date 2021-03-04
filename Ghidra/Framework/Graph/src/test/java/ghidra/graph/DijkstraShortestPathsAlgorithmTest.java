@@ -95,6 +95,20 @@ public class DijkstraShortestPathsAlgorithmTest {
 
 	private static class TestGImplicitDirectedGraph<V, E extends GEdge<V>>
 			extends JungDirectedGraph<V, E> implements GImplicitDirectedGraph<V, E> {
+		@Override
+		public Collection<E> getIncidentEdges(V v) {
+			return edgesOf(v);
+		}
+
+		@Override
+		public Collection<V> getPredecessors(V v) {
+			return super.getPredecessors(v);
+		}
+
+		@Override
+		public Collection<V> getSuccessors(V v) {
+			return super.getSuccessors(v);
+		}
 		// This class provides the default concrete graph, along with the interface the
 		// algorithm under test needs
 	}

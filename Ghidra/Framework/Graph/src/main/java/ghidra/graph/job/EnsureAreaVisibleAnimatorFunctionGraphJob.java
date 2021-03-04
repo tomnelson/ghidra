@@ -22,8 +22,8 @@ import java.util.Objects;
 
 import org.jdesktop.animation.timing.Animator;
 
-import edu.uci.ics.jung.visualization.VisualizationViewer;
 import ghidra.graph.viewer.*;
+import org.jungrapht.visualization.VisualizationViewer;
 
 // TODO doc - the area is expected to be vertex relative, where
 //			  vertex relative means that the value is from inside the vertex, or the vertex's
@@ -37,8 +37,8 @@ public class EnsureAreaVisibleAnimatorFunctionGraphJob<V extends VisualVertex, E
 	private Point2D preCreatedDestinaton;
 
 	public EnsureAreaVisibleAnimatorFunctionGraphJob(VisualizationViewer<V, E> primaryViewer,
-			SatelliteGraphViewer<V, E> satelliteViewer, V vertex, Rectangle visibleArea,
-			boolean useAnimation) {
+													 SatelliteGraphViewer<V, E> satelliteViewer, V vertex, Rectangle visibleArea,
+													 boolean useAnimation) {
 
 		super(primaryViewer, useAnimation);
 
@@ -77,7 +77,7 @@ public class EnsureAreaVisibleAnimatorFunctionGraphJob<V extends VisualVertex, E
 			return null; // cannot obscure if not docked
 		}
 
-		if (!satelliteViewer.isShowing()) {
+		if (!satelliteViewer.getComponent().isShowing()) {
 			return null; // nothing to do
 		}
 

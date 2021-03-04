@@ -20,8 +20,6 @@ import java.util.*;
 import docking.action.DockingAction;
 import docking.action.MenuData;
 import docking.tool.ToolConstants;
-import edu.uci.ics.jung.graph.DirectedSparseGraph;
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.CorePluginPackage;
 import ghidra.app.context.NavigatableActionContext;
 import ghidra.app.context.NavigatableContextAction;
@@ -46,6 +44,11 @@ import ghidra.util.exception.AssertException;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
 import ghidra.util.task.TaskMonitorAdapter;
+import org.jgrapht.Graph;
+import org.jgrapht.graph.DefaultGraphType;
+import org.jgrapht.graph.DirectedMultigraph;
+import org.jgrapht.graph.Multigraph;
+import org.jgrapht.graph.builder.GraphTypeBuilder;
 
 /**
  * This plugin class contains the structure needed for the user to select code
@@ -205,7 +208,7 @@ public class SelectByScopedFlowPlugin extends ProgramPlugin {
 			Graph<CodeBlockVertex, CodeBlockEdge> graph) {
 
 		CodeBlockVertex from = null;
-		Collection<CodeBlockVertex> vertices = graph.getVertices();
+		Collection<CodeBlockVertex> vertices = graph.vertexSet();
 		for (CodeBlockVertex vertex : vertices) {
 			CodeBlock codeBlock = vertex.getCodeBlock();
 			Address address = location.getAddress();
@@ -253,8 +256,8 @@ public class SelectByScopedFlowPlugin extends ProgramPlugin {
 
 	private Graph<CodeBlockVertex, CodeBlockEdge> createGraph(Function function, Program program,
 			TaskMonitor monitor) throws CancelledException {
-		DirectedSparseGraph<CodeBlockVertex, CodeBlockEdge> directedGraph =
-			new DirectedSparseGraph<>();
+		Graph<CodeBlockVertex, CodeBlockEdge> directedGraph =
+			GraphTypeBuilder.<CodeBlockVertex, CodeBlockEdge>forGraphType(DefaultGraphType.directedMultigraph()).buildGraph();
 		List<CodeBlockVertex> vertices = createVertices(function, program, monitor);
 
 		addVerticesToGraph(directedGraph, vertices);
@@ -287,7 +290,7 @@ public class SelectByScopedFlowPlugin extends ProgramPlugin {
 	}
 
 	private void addVerticesToGraph(
-			DirectedSparseGraph<CodeBlockVertex, CodeBlockEdge> directedGraph,
+			Graph<CodeBlockVertex, CodeBlockEdge> directedGraph,
 			List<CodeBlockVertex> vertices) {
 		for (CodeBlockVertex vertex : vertices) {
 			directedGraph.addVertex(vertex);
@@ -318,8 +321,9 @@ public class SelectByScopedFlowPlugin extends ProgramPlugin {
 			if (end == null) {
 				continue; // no vertex means the code block is not in our function
 			}
-
-			graph.addEdge(new CodeBlockEdge(start, end), start, end);
+			graph.addVertex(start);
+			graph.addVertex(end);
+			graph.addEdge(start, end, new CodeBlockEdge(start, end));
 		}
 	}
 

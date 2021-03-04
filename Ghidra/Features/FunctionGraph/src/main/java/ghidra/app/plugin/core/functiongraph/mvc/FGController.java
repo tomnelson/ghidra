@@ -15,7 +15,9 @@
  */
 package ghidra.app.plugin.core.functiongraph.mvc;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
@@ -58,6 +60,8 @@ import ghidra.program.model.symbol.*;
 import ghidra.program.util.ProgramLocation;
 import ghidra.program.util.ProgramSelection;
 import ghidra.util.SystemUtilities;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.util.PointUtils;
 
 public class FGController implements ProgramLocationListener, ProgramSelectionListener {
 
@@ -357,7 +361,7 @@ public class FGController implements ProgramLocationListener, ProgramSelectionLi
 		groupSelectedVertices(null);
 	}
 
-	public void groupSelectedVertices(Point2D location) {
+	public void groupSelectedVertices(Point location) {
 		FGViewUpdater updater = view.getViewUpdater();
 		updater.groupSelectedVertices(this, location);
 	}
@@ -402,7 +406,7 @@ public class FGController implements ProgramLocationListener, ProgramSelectionLi
 		updater.regroupVertices(this, v);
 	}
 
-	public boolean installGroupVertex(GroupedFunctionGraphVertex vertex, Point2D location) {
+	public boolean installGroupVertex(GroupedFunctionGraphVertex vertex, Point location) {
 		FGViewUpdater updater = view.getViewUpdater();
 		return updater.installGroupVertex(this, vertex, location);
 	}
@@ -942,7 +946,7 @@ public class FGController implements ProgramLocationListener, ProgramSelectionLi
 		return provider;
 	}
 
-	public Point getViewerPointFromVertexPoint(FGVertex vertex, Point point) {
+	public java.awt.Point getViewerPointFromVertexPoint(FGVertex vertex, java.awt.Point point) {
 		return view.translatePointFromVertexToViewSpace(vertex, point);
 	}
 

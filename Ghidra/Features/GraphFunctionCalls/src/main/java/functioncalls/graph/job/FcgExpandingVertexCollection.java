@@ -22,9 +22,10 @@ import java.util.stream.Collectors;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.collections4.map.LazyMap;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import functioncalls.graph.*;
 import ghidra.graph.viewer.GraphViewer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
 import util.CollectionUtils;
 
 /**
@@ -111,7 +112,7 @@ public class FcgExpandingVertexCollection {
 
 	private int compareVerticesByLayoutPosition(FcgVertex v1, FcgVertex v2) {
 
-		Layout<FcgVertex, FcgEdge> layout = viewer.getGraphLayout();
+		LayoutModel<FcgVertex> layout = viewer.getVisualizationModel().getLayoutModel();
 
 		FcgLevel l1 = v1.getLevel();
 		FcgLevel l2 = v2.getLevel();
@@ -129,9 +130,9 @@ public class FcgExpandingVertexCollection {
 			return result;
 		}
 
-		Point2D p1 = layout.apply(v1);
-		Point2D p2 = layout.apply(v2);
-		return (int) (p1.getX() - p2.getX());
+		Point p1 = layout.apply(v1);
+		Point p2 = layout.apply(v2);
+		return (int) (p1.x - p2.x);
 	}
 
 	/**

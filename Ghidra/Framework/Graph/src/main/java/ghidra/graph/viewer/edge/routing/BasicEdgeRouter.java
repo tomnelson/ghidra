@@ -22,12 +22,12 @@ import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.util.*;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.util.Pair;
-import edu.uci.ics.jung.visualization.VisualizationServer;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
 
 public class BasicEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>> {
 
@@ -41,7 +41,7 @@ public class BasicEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>> {
 
 	public void route() {
 		for (E edge : edges) {
-			List<Point2D> articulations = edge.getArticulationPoints();
+			List<Point> articulations = edge.getArticulationPoints();
 
 			if (articulations.isEmpty()) {
 				continue; // nothing to do
@@ -60,15 +60,14 @@ public class BasicEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>> {
 
 	protected boolean isOccluded(E edge, Shape graphSpaceShape) {
 
-		Layout<V, E> layout = viewer.getGraphLayout();
+		LayoutModel<V> layout = viewer.getVisualizationModel().getLayoutModel();
 		Graph<V, E> graph = layout.getGraph();
-		Collection<V> vertices = graph.getVertices();
+		Collection<V> vertices = graph.vertexSet();
 
 		for (V vertex : vertices) {
 			Rectangle vertexBounds = getVertexBoundsInGraphSpace(viewer, vertex);
 
-			Pair<V> endpoints = graph.getEndpoints(edge);
-			if (vertex == endpoints.getFirst() || vertex == endpoints.getSecond()) {
+			if (vertex == graph.getEdgeSource(edge) || vertex == graph.getEdgeTarget(edge)) {
 				// do we ever care if an edge is occluded by its own vertices?
 				continue;
 			}
@@ -81,28 +80,27 @@ public class BasicEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>> {
 		return false;
 	}
 
-	protected List<Point2D> removeBadlyAngledArticulations(E edge, List<Point2D> articulations) {
+	protected List<Point> removeBadlyAngledArticulations(E edge, List<Point> articulations) {
 
-		Layout<V, E> layout = viewer.getGraphLayout();
+		LayoutModel<V> layout = viewer.getVisualizationModel().getLayoutModel();
 		Graph<V, E> graph = layout.getGraph();
-		Pair<V> endpoints = graph.getEndpoints(edge);
-		V start = endpoints.getFirst();
-		V end = endpoints.getSecond();
+		V start = graph.getEdgeSource(edge);
+		V end = graph.getEdgeTarget(edge);
 
-		Point2D startPoint = layout.apply(start);
-		Point2D endPoint = layout.apply(end);
+		Point startPoint = layout.apply(start);
+		Point endPoint = layout.apply(end);
 
-		if (startPoint.getY() > endPoint.getY()) {
+		if (startPoint.y > endPoint.y) {
 			// swap the top and bottom points, as our source vertex is below the destination
-			Point2D newStart = endPoint;
+			Point newStart = endPoint;
 			endPoint = startPoint;
 			startPoint = newStart;
 		}
 
-		List<Point2D> newList = new ArrayList<>();
-		for (Point2D articulation : articulations) {
-			double deltaY = articulation.getY() - startPoint.getY();
-			double deltaX = articulation.getX() - startPoint.getX();
+		List<Point> newList = new ArrayList<>();
+		for (Point articulation : articulations) {
+			double deltaY = articulation.y - startPoint.y;
+			double deltaX = articulation.x - startPoint.x;
 			double theta = Math.atan2(deltaY, deltaX);
 			double degrees = theta * 180 / Math.PI;
 
@@ -110,8 +108,8 @@ public class BasicEdgeRouter<V extends VisualVertex, E extends VisualEdge<V>> {
 				continue;
 			}
 
-			deltaY = endPoint.getY() - articulation.getY();
-			deltaX = endPoint.getX() - articulation.getX();
+			deltaY = endPoint.y - articulation.y;
+			deltaX = endPoint.x - articulation.x;
 			theta = Math.atan2(deltaY, deltaX);
 			degrees = theta * 180 / Math.PI;
 

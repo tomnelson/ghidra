@@ -19,10 +19,10 @@ import static org.junit.Assert.*;
 
 import java.util.*;
 
+import org.jgrapht.Graph;
 import org.junit.Before;
 import org.junit.Test;
 
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.functiongraph.graph.*;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.GroupedFunctionGraphVertex;

@@ -27,6 +27,8 @@ import ghidra.app.plugin.core.functiongraph.mvc.FGController;
 import ghidra.app.plugin.core.functiongraph.mvc.FunctionGraphOptions;
 import ghidra.util.Msg;
 import ghidra.util.xml.XmlUtilities;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.util.PointUtils;
 
 /**
  * Note: this class should be created along with a GroupedFunctionGraphVertex, as the info
@@ -210,7 +212,7 @@ class GroupedVertexInfo extends VertexInfo {
 				continue; // can no longer find a vertex with the given info
 			}
 
-			vertex = checkForGroupVertex(controller, vertex, info.getVertexLocation());
+			vertex = checkForGroupVertex(controller, vertex, PointUtils.convert(info.getVertexLocation()));
 			if (vertex == null) {
 				continue; // couldn't install group vertex
 			}
@@ -242,7 +244,7 @@ class GroupedVertexInfo extends VertexInfo {
 	}
 
 	private FGVertex checkForGroupVertex(FGController controller, FGVertex vertex,
-			Point2D location) {
+			Point location) {
 
 		if (!(vertex instanceof GroupedFunctionGraphVertex)) {
 			return vertex;

@@ -17,17 +17,16 @@ package ghidra.app.plugin.core.functiongraph.graph.jung.transformer;
 
 import java.awt.Color;
 import java.awt.Paint;
+import java.util.function.Function;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.visualization.picking.PickedInfo;
 import ghidra.app.plugin.core.functiongraph.graph.FGVertexType;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
 import ghidra.program.util.ProgramSelection;
+import org.jungrapht.visualization.selection.SelectedState;
 
 public class FGVertexPickableBackgroundPaintTransformer implements Function<FGVertex, Paint> {
 
-	private final PickedInfo<FGVertex> info;
+	private final SelectedState<FGVertex> info;
 	private final Color pickedColor;
 	private final Color entryColor;
 	private final Color exitColor;
@@ -39,7 +38,7 @@ public class FGVertexPickableBackgroundPaintTransformer implements Function<FGVe
 			(c1.getBlue() + c2.getBlue()) / 2);
 	}
 
-	public FGVertexPickableBackgroundPaintTransformer(PickedInfo<FGVertex> info, Color pickedColor,
+	public FGVertexPickableBackgroundPaintTransformer(SelectedState<FGVertex> info, Color pickedColor,
 			Color startColor, Color endColor) {
 
 		if (info == null) {
@@ -66,7 +65,7 @@ public class FGVertexPickableBackgroundPaintTransformer implements Function<FGVe
 		}
 
 		FGVertexType vertexType = v.getVertexType();
-		if (info.isPicked(v)) {
+		if (info.isSelected(v)) {
 			if (v.isDefaultBackgroundColor()) {
 				if (vertexType.isEntry()) {
 					return pickedStartColor;

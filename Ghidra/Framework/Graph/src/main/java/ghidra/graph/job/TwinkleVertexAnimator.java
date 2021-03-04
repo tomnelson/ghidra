@@ -19,9 +19,9 @@ import org.jdesktop.animation.timing.Animator;
 import org.jdesktop.animation.timing.Animator.RepeatBehavior;
 import org.jdesktop.animation.timing.interpolation.PropertySetter;
 
-import edu.uci.ics.jung.visualization.VisualizationServer;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import org.jungrapht.visualization.VisualizationServer;
 
 /**
  * A class to animate a vertex in order to draw attention to it.

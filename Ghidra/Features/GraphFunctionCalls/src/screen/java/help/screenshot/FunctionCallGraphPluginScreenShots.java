@@ -19,17 +19,16 @@ import java.awt.*;
 
 import javax.swing.SwingUtilities;
 
+import org.jungrapht.visualization.selection.MutableSelectedState;
 import org.junit.*;
 
 import docking.DockableComponent;
-import edu.uci.ics.jung.visualization.picking.PickedState;
 import functioncalls.graph.*;
 import functioncalls.graph.view.FcgView;
 import functioncalls.plugin.*;
 import generic.test.TestUtils;
 import ghidra.graph.viewer.*;
 import ghidra.program.model.address.TestAddress;
-import ghidra.program.model.listing.Function;
 
 public class FunctionCallGraphPluginScreenShots extends GhidraScreenShotGenerator {
 
@@ -89,7 +88,7 @@ public class FunctionCallGraphPluginScreenShots extends GhidraScreenShotGenerato
 
 	private void clearSelection() {
 		GraphViewer<FcgVertex, FcgEdge> viewer = viewer();
-		PickedState<FcgVertex> picker = viewer.getPickedVertexState();
+		MutableSelectedState<FcgVertex> picker = viewer.getSelectedVertexState();
 		runSwing(() -> {
 			picker.clear();
 		});

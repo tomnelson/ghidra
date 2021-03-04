@@ -22,11 +22,12 @@ import java.awt.geom.Point2D;
 import java.util.*;
 
 import org.apache.commons.collections4.IterableUtils;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.Point;
 import org.junit.*;
 
 import docking.ActionContext;
 import docking.action.DockingActionIf;
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.clear.ClearPlugin;
 import ghidra.app.plugin.core.codebrowser.CodeBrowserPlugin;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
@@ -87,7 +88,7 @@ public class FunctionGraphGroupVertices1Test extends AbstractFunctionGraphTest {
 		int expectedGroupedEdgeCount = ungroupedEdges.size() - 1;
 		GroupedFunctionGraphVertex groupedVertex = validateNewGroupedVertexFromVertices(
 			functionGraph, ungroupedVertices, expectedGroupedEdgeCount);
-		Point2D location = getLocation(groupedVertex);
+		Point location = getLocation(groupedVertex);
 		AddressSetView addresses = groupedVertex.getAddresses();
 		Address minAddress = addresses.getMinAddress();
 		Address maxAddress = addresses.getMaxAddress();
@@ -95,7 +96,7 @@ public class FunctionGraphGroupVertices1Test extends AbstractFunctionGraphTest {
 		// Record the edges for later validation.  Note: we have to keep the string form, as the
 		// toString() on the edges will call back to its vertices, which will later have been
 		// disposed.
-		Collection<FGEdge> oringalGroupedEdges = new HashSet<>(graph.getEdges());// copy so they don't get cleared		
+		Collection<FGEdge> oringalGroupedEdges = new HashSet<>(graph.edgeSet());// copy so they don't get cleared
 		List<String> originalEdgeStrings = new ArrayList<>(oringalGroupedEdges.size());
 		for (FGEdge edge : oringalGroupedEdges) {
 			originalEdgeStrings.add(edge.toString());
@@ -112,7 +113,7 @@ public class FunctionGraphGroupVertices1Test extends AbstractFunctionGraphTest {
 		assertTrue(vertex instanceof GroupedFunctionGraphVertex);
 		assertEquals(maxAddress, vertex.getAddresses().getMaxAddress());
 
-		Point2D newLocation = getLocation(vertex);
+		Point newLocation = getLocation(vertex);
 
 		// TODO debug - this has failed; suspected timing issue
 		waitForCondition(() -> pointsAreSimilar(location, newLocation));
@@ -123,7 +124,7 @@ public class FunctionGraphGroupVertices1Test extends AbstractFunctionGraphTest {
 				"original point: " + location + " - reloaded point: " + newLocation,
 			pointsAreSimilar(location, newLocation));
 
-		Collection<FGEdge> newGroupedEdges = graph.getEdges();
+		Collection<FGEdge> newGroupedEdges = graph.edgeSet();
 		List<String> newEdgeStrings = new ArrayList<>(newGroupedEdges.size());
 		for (FGEdge edge : newGroupedEdges) {
 			newEdgeStrings.add(edge.toString());
@@ -362,7 +363,7 @@ public class FunctionGraphGroupVertices1Test extends AbstractFunctionGraphTest {
 		FGData graphData = graphFunction("01002cf5");
 		FunctionGraph functionGraph = graphData.getFunctionGraph();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Set<FGVertex> originalVertices = new HashSet<>(graph.getVertices());
+		Set<FGVertex> originalVertices = new HashSet<>(graph.vertexSet());
 
 		Set<FGVertex> ungroupedVertices =
 			selectVertices(functionGraph, "01002d2b" /* Another Local*/, "01002d1f" /* MyLocal */);
@@ -376,13 +377,13 @@ public class FunctionGraphGroupVertices1Test extends AbstractFunctionGraphTest {
 			selectVertices(functionGraph, "01002d11" /* LAB_01002d11*/, "01002d06" /* 01002d06 */);
 		group(secondUngroupedVertices);
 
-		Assert.assertNotEquals(originalVertices.size(), graph.getVertices().size());
+		Assert.assertNotEquals(originalVertices.size(), graph.vertexSet().size());
 
 		ungroupAll();
 
 		// don't use assertEQuals() with the different sets, as the sets may be of differing types
 		// that do not correctly compare as equal
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 		assertEquals(originalVertices.size(), vertices.size());
 		for (FGVertex originalVertex : originalVertices) {
 			assertTrue("Original vertex not in ungrouped group: " + originalVertex,

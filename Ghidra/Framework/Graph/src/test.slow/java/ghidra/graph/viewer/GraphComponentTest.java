@@ -28,11 +28,11 @@ import java.util.stream.Collectors;
 import javax.swing.JDialog;
 import javax.swing.JTextArea;
 
+import org.jungrapht.visualization.RenderContext;
 import org.junit.Before;
 import org.junit.Test;
 
 import docking.test.AbstractDockingTest;
-import edu.uci.ics.jung.visualization.RenderContext;
 import generic.test.AbstractGenericTest;
 import generic.test.TestUtils;
 import generic.util.WindowUtilities;

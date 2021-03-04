@@ -22,7 +22,6 @@ import java.util.Map.Entry;
 
 import org.jdom.Element;
 
-import edu.uci.ics.jung.graph.Graph;
 import ghidra.app.plugin.core.colorizer.ColorizingService;
 import ghidra.app.plugin.core.functiongraph.FunctionGraphPlugin;
 import ghidra.app.plugin.core.functiongraph.graph.FGEdge;
@@ -35,6 +34,7 @@ import ghidra.program.model.listing.ProgramUserData;
 import ghidra.program.model.util.ObjectPropertyMap;
 import ghidra.program.model.util.PropertyMap;
 import ghidra.util.*;
+import org.jgrapht.Graph;
 
 /**
  * A class to store user graph setting information, such as layout positions, grouping information
@@ -82,7 +82,7 @@ public class FunctionGraphVertexAttributes {
 
 		Map<FGVertex, Point> map = new HashMap<>();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 		for (FGVertex vertex : vertices) {
 			SaveablePoint saveablePoint = getPointFromPropertyMap(vertex, vertexLocationPropertyMap,
 				groupVertexLocationPropertyMap);
@@ -159,7 +159,7 @@ public class FunctionGraphVertexAttributes {
 
 		Map<FGVertex, Color> map = new HashMap<>();
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 		for (FGVertex vertex : vertices) {
 			AddressSetView codeBlock = vertex.getAddresses();
 			Address minAddress = codeBlock.getMinAddress();
@@ -202,7 +202,7 @@ public class FunctionGraphVertexAttributes {
 		}
 
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGVertex> vertices = graph.getVertices();
+		Collection<FGVertex> vertices = graph.vertexSet();
 		for (FGVertex vertex : vertices) {
 			AddressSetView codeBlock = vertex.getAddresses();
 			Address minAddress = codeBlock.getMinAddress();

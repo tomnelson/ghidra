@@ -23,7 +23,6 @@ import javax.swing.*;
 
 import docking.*;
 import docking.widgets.fieldpanel.FieldPanel;
-import edu.uci.ics.jung.graph.Graph;
 import generic.stl.Pair;
 import ghidra.app.context.ListingActionContext;
 import ghidra.app.nav.*;
@@ -52,6 +51,7 @@ import ghidra.util.datastruct.WeakDataStructureFactory;
 import ghidra.util.datastruct.WeakSet;
 import ghidra.util.exception.AssertException;
 import ghidra.util.task.SwingUpdateManager;
+import org.jgrapht.Graph;
 
 public class FGProvider extends VisualGraphComponentProvider<FGVertex, FGEdge, FunctionGraph>
 		implements Navigatable, DomainObjectListener {
@@ -329,7 +329,9 @@ public class FGProvider extends VisualGraphComponentProvider<FGVertex, FGEdge, F
 		boolean isPastInteractionThreshold = controller.isScaledPastInteractionThreshold();
 		FGVertex vertex = controller.getFocusedVertex();
 		if (vertex == null || isPastInteractionThreshold) {
-			return new FunctionGraphValidGraphActionContext(this, getSelectedVertices());
+			return new FunctionGraphValidGraphActionContext(this,
+					Collections.emptySet());
+//					getSelectedVertices());
 		}
 
 		VertexActionContextInfo vertexInfo = createContexInfo(vertex);
@@ -392,7 +394,7 @@ public class FGProvider extends VisualGraphComponentProvider<FGVertex, FGEdge, F
 
 		String programName =
 			(currentProgram != null) ? currentProgram.getDomainFile().getName() : "";
-		String second = function.getName() + " - " + graph.getVertexCount() + " vertices  (" +
+		String second = function.getName() + " - " + graph.vertexSet().size() + " vertices  (" +
 			programName + ")";
 
 		return new Pair<>(first, second);
@@ -735,7 +737,7 @@ public class FGProvider extends VisualGraphComponentProvider<FGVertex, FGEdge, F
 		// -There must not be any non-dynamic labels on the vertex
 		//
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGEdge> inEdgesForDestination = graph.getInEdges(destinationVertex);
+		Collection<FGEdge> inEdgesForDestination = graph.incomingEdgesOf(destinationVertex);
 		if (inEdgesForDestination.size() == 0) {
 			// must be in a dirty state with vertices and edges that don't match reality
 			return;
@@ -747,7 +749,7 @@ public class FGProvider extends VisualGraphComponentProvider<FGVertex, FGEdge, F
 
 		FGEdge incomingEdge = inEdgesForDestination.iterator().next();
 		FGVertex parentVertex = incomingEdge.getStart();
-		Collection<FGEdge> outEdges = graph.getOutEdges(parentVertex);
+		Collection<FGEdge> outEdges = graph.outgoingEdgesOf(parentVertex);
 		if (outEdges.size() > 1) {
 			return;
 		}
@@ -853,7 +855,7 @@ public class FGProvider extends VisualGraphComponentProvider<FGVertex, FGEdge, F
 		// -There must not be any non-dynamic labels on the vertex		
 		//
 		Graph<FGVertex, FGEdge> graph = functionGraph;
-		Collection<FGEdge> inEdgesForDestination = graph.getInEdges(destinationVertex);
+		Collection<FGEdge> inEdgesForDestination = graph.incomingEdgesOf(destinationVertex);
 		if (inEdgesForDestination.size() == 0) {
 			// must be in a dirty state with vertices and edges that don't match reality
 			return;
@@ -866,7 +868,7 @@ public class FGProvider extends VisualGraphComponentProvider<FGVertex, FGEdge, F
 
 		FGEdge incomingEdge = inEdgesForDestination.iterator().next();
 		FGVertex parentVertex = incomingEdge.getStart();
-		Collection<FGEdge> outEdges = graph.getOutEdges(parentVertex);
+		Collection<FGEdge> outEdges = graph.outgoingEdgesOf(parentVertex);
 		if (outEdges.size() > 1) {
 			return;
 		}

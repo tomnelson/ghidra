@@ -22,16 +22,18 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.layout.ObservableCachingLayout;
-import edu.uci.ics.jung.visualization.renderers.Renderer;
-import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
-import edu.uci.ics.jung.visualization.transform.shape.ShapeTransformer;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.renderer.VisualVertexSatelliteRenderer;
 import ghidra.util.task.SwingUpdateManager;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.renderers.Renderer;
+import org.jungrapht.visualization.transform.shape.GraphicsDecorator;
+import org.jungrapht.visualization.transform.shape.ShapeTransformer;
+
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 public class CachingSatelliteGraphViewer<V extends VisualVertex, E extends VisualEdge<V>>
 		extends SatelliteGraphViewer<V, E> {
@@ -55,18 +57,18 @@ public class CachingSatelliteGraphViewer<V extends VisualVertex, E extends Visua
 		preRenderers.clear(); // remove default lens painter
 		setBackground(masterViewer.getBackground().darker()); // same behavior as default ViewLens
 
-		Layout<V, E> layout = masterViewer.getGraphLayout();
-		if (layout instanceof ObservableCachingLayout<?, ?>) {
-			ObservableCachingLayout<?, ?> cachingLayout = (ObservableCachingLayout<?, ?>) layout;
-			cachingLayout.addChangeListener(e -> satelliteUpdateManager.updateNow());
-		}
+		LayoutModel<V> layout = masterViewer.getVisualizationModel().getLayoutModel();
+//		if (layout instanceof ObservableCachingLayout<?, ?>) {
+//			ObservableCachingLayout<?, ?> cachingLayout = (ObservableCachingLayout<?, ?>) layout;
+//			cachingLayout.addChangeListener(e -> satelliteUpdateManager.updateNow());
+//		}
 	}
 
 	// Overridden to update our cache when our size changes, as our layout is based upon our size
-	@Override
+//	@Override
 	public void setBounds(int x, int y, int width, int height) {
 		clearCache();
-		super.setBounds(x, y, width, height);
+//		super.getComponent().setBounds(x, y, width, height);
 	}
 
 	@Override
@@ -74,7 +76,7 @@ public class CachingSatelliteGraphViewer<V extends VisualVertex, E extends Visua
 		return new VisualVertexSatelliteRenderer<V, E>() {
 			@Override
 			protected void paintHighlight(RenderContext<V, E> rc, V vertex, GraphicsDecorator g,
-					Rectangle bounds) {
+										  Rectangle bounds) {
 				// Stub--we don't want the render to paint highlights, as we use a static, 
 				// cached image.  We will manually paint highlights in the paint routine of this
 				// viewer.
@@ -130,21 +132,21 @@ public class CachingSatelliteGraphViewer<V extends VisualVertex, E extends Visua
 		refreshBufferedImageAsNeeded(g);
 
 		g.drawImage(bufferedBackgroundImage, 0, 0, null);
-
-		MultiLayerTransformer myMultiLayerTransformer = renderContext.getMultiLayerTransformer();
+		MultiLayerTransformer myMultiLayerTransformer = getRenderContext().getMultiLayerTransformer();
 		ShapeTransformer masterViewTransformer =
-			master.getRenderContext().getMultiLayerTransformer().getTransformer(Layer.VIEW);
+			getMaster().getRenderContext().getMultiLayerTransformer().getTransformer(Layer.VIEW);
 		ShapeTransformer masterLayoutTransformer =
-			master.getRenderContext().getMultiLayerTransformer().getTransformer(Layer.LAYOUT);
-		ShapeTransformer vvLayoutTransformer = myMultiLayerTransformer.getTransformer(Layer.LAYOUT);
+			getMaster().getRenderContext().getMultiLayerTransformer().getTransformer(Layer.LAYOUT);
+		ShapeTransformer vvLayoutTransformer =
+				myMultiLayerTransformer.getTransformer(Layer.LAYOUT);
 
-		Shape lens = master.getBounds();
+		Shape lens = getMaster().getBounds();
 
 		lens = masterViewTransformer.inverseTransform(lens);
 		lens = masterLayoutTransformer.inverseTransform(lens);
 		lens = vvLayoutTransformer.transform(lens);
 
-		Shape lensClip = master.getBounds();
+		Shape lensClip = getMaster().getBounds();
 		lensClip = myMultiLayerTransformer.getTransformer(Layer.VIEW).transform(lens);
 
 		Shape originalClip = g2d.getClip();
@@ -162,10 +164,10 @@ public class CachingSatelliteGraphViewer<V extends VisualVertex, E extends Visua
 			return;
 		}
 
-		Layout<V, E> layout = model.getGraphLayout();
+		LayoutModel<V> layout = getVisualizationModel().getLayoutModel();
 		Graph<V, E> graph = layout.getGraph();
 
-		Collection<V> vertices = graph.getVertices();
+		Collection<V> vertices = graph.vertexSet();
 		List<V> selectedVertices = new LinkedList<>();
 		for (V vertex : vertices) {
 			if (vertex.isSelected()) {

@@ -17,17 +17,19 @@ package ghidra.graph.graphs;
 
 import static util.CollectionUtils.asList;
 
+import java.awt.Point;
 import java.util.*;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
 
-import edu.uci.ics.jung.graph.util.EdgeType;
-import edu.uci.ics.jung.graph.util.Pair;
 import ghidra.graph.GraphAlgorithms;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import ghidra.graph.viewer.layout.LayoutListener;
 import ghidra.graph.viewer.layout.VisualGraphLayout;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.algorithms.util.Pair;
 import util.CollectionUtils;
 import utility.function.Callback;
 
@@ -148,10 +150,15 @@ public abstract class FilteringVisualGraph<V extends VisualVertex, E extends Vis
 		return completeGraph.getEdgeCount() != getEdgeCount();
 	}
 
-	public void clearFilter() {
-		vertices.clear();
-		edges.clear();
+	private static <V, E> void clearGraph(Graph<V, E> graph) {
+		Set<E> edges = new HashSet<>(graph.edgeSet());
+		Set<V> vertices = new HashSet<>(graph.vertexSet());
+		graph.removeAllEdges(edges);
+		graph.removeAllVertices(vertices);
+	}
 
+	public void clearFilter() {
+		clearGraph(this);
 		restoreAllVertices();
 		restoreAllEdges();
 	}
@@ -406,47 +413,46 @@ public abstract class FilteringVisualGraph<V extends VisualVertex, E extends Vis
 		completeGraph.addEdge(e);
 	}
 
-	@Override
-	public boolean addEdge(E e, Pair<? extends V> endpoints, EdgeType type) {
-		maybePerformAdd(() -> super.addEdge(e, endpoints, type));
-		return completeGraph.addEdge(e, endpoints, type);
-	}
+//	@Override
+//	public boolean addEdge(E e, Pair<? extends V> endpoints, EdgeType type) {
+//		maybePerformAdd(() -> super.addEdge(e, endpoints, type));
+//		return completeGraph.addEdge(e, endpoints, type);
+//	}
+
+//	@Override
+//	public boolean addEdge(E e, Collection<? extends V> edgeVertices) {
+//		maybePerformAdd(() -> super.addEdge(e, edgeVertices));
+//		return completeGraph.addEdge(e, edgeVertices);
+//	}
+
+//	@Override
+//	public boolean addEdge(E e, Collection<? extends V> edgeVertices, EdgeType type) {
+//		maybePerformAdd(() -> super.addEdge(e, edgeVertices, type));
+//		return completeGraph.addEdge(e, edgeVertices, type);
+//	}
 
 	@Override
-	public boolean addEdge(E e, Collection<? extends V> edgeVertices) {
-		maybePerformAdd(() -> super.addEdge(e, edgeVertices));
-		return completeGraph.addEdge(e, edgeVertices);
+	public boolean addEdge(V v1, V v2, E e) {
+		maybePerformAdd(() -> super.addEdge(v1, v2, e));
+		return completeGraph.addEdge(v1, v2, e);
 	}
 
-	@Override
-	public boolean addEdge(E e, Collection<? extends V> edgeVertices, EdgeType type) {
-		maybePerformAdd(() -> super.addEdge(e, edgeVertices, type));
-		return completeGraph.addEdge(e, edgeVertices, type);
-	}
+//	@Override
+//	public boolean addEdge(E e, V v1, V v2, EdgeType edgeType) {
+//		maybePerformAdd(() -> super.addEdge(e, v1, v2, edgeType));
+//		return completeGraph.addEdge(e, v1, v2, edgeType);
+//	}
 
-	@Override
-	public boolean addEdge(E e, V v1, V v2) {
-		maybePerformAdd(() -> super.addEdge(e, v1, v2));
-		return completeGraph.addEdge(e, v1, v2);
-	}
-
-	@Override
-	public boolean addEdge(E e, V v1, V v2, EdgeType edgeType) {
-		maybePerformAdd(() -> super.addEdge(e, v1, v2, edgeType));
-		return completeGraph.addEdge(e, v1, v2, edgeType);
-	}
-
-	@Override
+//	@Override
 	public boolean addEdge(E e, Pair<? extends V> endpoints) {
-		maybePerformAdd(() -> super.addEdge(e, endpoints));
-		return completeGraph.addEdge(e, endpoints);
+		maybePerformAdd(() -> super.addEdge(endpoints.first, endpoints.second, e));
+		return completeGraph.addEdge(endpoints.first, endpoints.second, e);
 	}
 
 	@Override
 	public void dispose() {
 		completeGraph.dispose();
-		vertices.clear();
-		edges.clear();
+		clearGraph(this);
 	}
 
 //==================================================================================================
@@ -454,6 +460,11 @@ public abstract class FilteringVisualGraph<V extends VisualVertex, E extends Vis
 //==================================================================================================	
 
 	private class UnfilteredGraph extends DefaultVisualGraph<V, E> {
+
+		@Override
+		public void vertexLocationChanged(V v, Point point, LayoutListener.ChangeType changeType) {
+
+		}
 
 		@Override
 		public VisualGraphLayout<V, E> getLayout() {
@@ -469,8 +480,7 @@ public abstract class FilteringVisualGraph<V extends VisualVertex, E extends Vis
 
 		@Override
 		public void dispose() {
-			vertices.clear();
-			edges.clear();
+			clearGraph(this);
 		}
 	}
 }

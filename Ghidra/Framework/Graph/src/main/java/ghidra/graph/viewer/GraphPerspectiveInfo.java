@@ -17,8 +17,11 @@ package ghidra.graph.viewer;
 
 import java.awt.Point;
 
-import edu.uci.ics.jung.visualization.*;
 import ghidra.framework.options.SaveState;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 /**
  * An object that allows for storing and restoring of graph perspective data, like the zoom 

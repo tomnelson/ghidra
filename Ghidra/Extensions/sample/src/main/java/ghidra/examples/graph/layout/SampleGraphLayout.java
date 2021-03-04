@@ -15,10 +15,10 @@
  */
 package ghidra.examples.graph.layout;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import ghidra.examples.graph.*;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.layout.JungWrappingVisualGraphLayoutAdapter;
+import org.jungrapht.visualization.layout.model.LayoutModel;
 
 /**
  * A {@link SampleGraphPlugin} layout that can be used to apply existing Jung layouts.
@@ -26,19 +26,19 @@ import ghidra.graph.viewer.layout.JungWrappingVisualGraphLayoutAdapter;
 public class SampleGraphLayout
 		extends JungWrappingVisualGraphLayoutAdapter<SampleVertex, SampleEdge> {
 
-	public SampleGraphLayout(Layout<SampleVertex, SampleEdge> jungLayout) {
+	public SampleGraphLayout(LayoutModel<SampleVertex> jungLayout) {
 		super(jungLayout);
 	}
 
 	@Override
-	protected Layout<SampleVertex, SampleEdge> cloneJungLayout(
+	protected LayoutModel<SampleVertex> cloneJungLayout(
 			VisualGraph<SampleVertex, SampleEdge> newGraph) {
 
-		Layout<SampleVertex, SampleEdge> newJungLayout = cloneJungLayout(newGraph);
+		LayoutModel<SampleVertex> newJungLayout = cloneJungLayout(newGraph);
 		return new SampleGraphLayout(newJungLayout);
 	}
 
-	Layout<?, ?> getJungLayout() {
+	LayoutModel<?> getJungLayout() {
 		return delegate;
 	}
 }

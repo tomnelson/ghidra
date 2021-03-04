@@ -15,12 +15,12 @@
  */
 package ghidra.graph.viewer.layout;
 
-import java.awt.Point;
 import java.util.*;
 import java.util.Map.Entry;
 
 import org.apache.commons.collections4.Factory;
 import org.apache.commons.collections4.map.LazyMap;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * An object that maps vertices to rows and columns and edges to their articulation points.  
@@ -39,9 +39,9 @@ import org.apache.commons.collections4.map.LazyMap;
  */
 public class GridLocationMap<V, E> {
 
-	private Factory<Point> rowColFactory = () -> new Point();
+	private Factory<Point> rowColFactory = () -> Point.ORIGIN;
 
-	private Map<V, Point> vertexPoints = LazyMap.lazyMap(new HashMap<V, Point>(), rowColFactory);
+	private Map<V, Point> vertexPoints = LazyMap.lazyMap(new HashMap<>(), rowColFactory);
 	private Map<E, List<Point>> edgePoints = new HashMap<>();
 
 	Set<V> vertices() {
@@ -65,25 +65,29 @@ public class GridLocationMap<V, E> {
 	}
 
 	public void row(V vertex, int row) {
-		vertexPoints.get(vertex).y = row;
+		Point p = vertexPoints.get(vertex);
+		vertexPoints.put(vertex, Point.of(p.x, row));
+//		vertexPoints.get(vertex).y = row;
 	}
 
 	public void col(V vertex, int col) {
-		vertexPoints.get(vertex).x = col;
+		Point p = vertexPoints.get(vertex);
+		vertexPoints.put(vertex, Point.of(col, p.y));
 	}
 
 	public void set(V v, int row, int col) {
-		Point p = vertexPoints.get(v);
-		p.x = col;
-		p.y = row;
+//		Point p = vertexPoints.get(v);
+//		p.x = col;
+//		p.y = row;
+		vertexPoints.put(v, Point.of(col, row));
 	}
 
 	public int row(V vertex) {
-		return vertexPoints.get(vertex).y;
+		return (int)vertexPoints.get(vertex).y;
 	}
 
 	public int col(V vertex) {
-		return vertexPoints.get(vertex).x;
+		return (int)vertexPoints.get(vertex).x;
 	}
 
 	/**
@@ -99,10 +103,10 @@ public class GridLocationMap<V, E> {
 		for (Entry<V, Point> entry : entrySet) {
 			V v = entry.getKey();
 			Point gridPoint = entry.getValue();
-			int rowIndex = gridPoint.y;
+			int rowIndex = (int)gridPoint.y;
 			Row<V> row = getRow(rowsByIndex, rowIndex);
 			row.index = rowIndex;
-			row.setColumn(v, gridPoint.x);
+			row.setColumn(v, (int)gridPoint.x);
 		}
 
 		List<Row<V>> rows = new ArrayList<>(rowsByIndex.values());
@@ -212,7 +216,7 @@ public class GridLocationMap<V, E> {
 		map.vertexPoints = new HashMap<>();
 		Set<Entry<V, Point>> entries = vertexPoints.entrySet();
 		for (Entry<V, Point> entry : entries) {
-			map.vertexPoints.put(entry.getKey(), (Point) entry.getValue().clone());
+			map.vertexPoints.put(entry.getKey(), (Point) entry.getValue());
 		}
 
 		map.edgePoints = new HashMap<>();
@@ -222,7 +226,7 @@ public class GridLocationMap<V, E> {
 			List<Point> points = entry.getValue();
 			List<Point> clonedPoints = new ArrayList<>(points.size());
 			for (Point p : points) {
-				clonedPoints.add((Point) p.clone());
+				clonedPoints.add(p); // no need to clone immutable Points
 			}
 
 			map.edgePoints.put(entry.getKey(), clonedPoints);

@@ -24,22 +24,23 @@ import ghidra.app.plugin.core.functiongraph.graph.vertex.FGVertex;
 import ghidra.app.plugin.core.functiongraph.graph.vertex.GroupedFunctionGraphVertex;
 import ghidra.app.plugin.core.functiongraph.mvc.FGController;
 import ghidra.graph.viewer.layout.LayoutPositions;
+import org.jungrapht.visualization.layout.model.Point;
 
 public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJob {
 
-	private final Point2D groupVertexCurrentLocation;
+	private final Point groupVertexCurrentLocation;
 	private boolean isRegroupOperation = false;
 	private FunctionGraph functionGraph;
 
 	public static GroupVertexFunctionGraphJob createNewGroupJob(FGController controller,
-			GroupedFunctionGraphVertex groupVertex, Point2D location, boolean relayoutOverride,
+			GroupedFunctionGraphVertex groupVertex, Point location, boolean relayoutOverride,
 			boolean useAnimation) {
 		return new GroupVertexFunctionGraphJob(controller, groupVertex, location, relayoutOverride,
 			useAnimation, false);
 	}
 
 	public static GroupVertexFunctionGraphJob createRegroupJob(FGController controller,
-			GroupedFunctionGraphVertex groupVertex, Point2D location, boolean relayoutOverride,
+			GroupedFunctionGraphVertex groupVertex, Point location, boolean relayoutOverride,
 			boolean useAnimation) {
 		return new GroupVertexFunctionGraphJob(controller, groupVertex, location, relayoutOverride,
 			useAnimation, true);
@@ -70,7 +71,7 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 	 *                           operation that restores a previously existing group
 	 */
 	private GroupVertexFunctionGraphJob(FGController controller,
-			GroupedFunctionGraphVertex groupVertex, Point2D location, boolean relayoutOverride,
+			GroupedFunctionGraphVertex groupVertex, Point location, boolean relayoutOverride,
 			boolean useAnimation, boolean isRegroupOperation) {
 		super(controller, groupVertex, asSet(groupVertex), groupVertex.getVertices(),
 			relayoutOverride, useAnimation);
@@ -110,8 +111,8 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 	}
 
 	@Override
-	protected Map<FGVertex, Point2D> getGroupingDestinationLocations(boolean isRelayout,
-			Point2D groupVertexDestinationLocation) {
+	protected Map<FGVertex, Point> getGroupingDestinationLocations(boolean isRelayout,
+			Point groupVertexDestinationLocation) {
 
 		if (groupVertexDestinationLocation == null) {
 			groupVertexDestinationLocation = groupVertexCurrentLocation;
@@ -119,7 +120,7 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 
 		// 'isRelayout' or not, we always want our grouped vertices to end up 
 		// at the same locations...
-		Map<FGVertex, Point2D> locations = new HashMap<>();
+		Map<FGVertex, Point> locations = new HashMap<>();
 
 		// put the grouped vertices at the same destination as the group
 		for (FGVertex vertex : verticesToBeRemoved) {
@@ -144,7 +145,7 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 		// user options
 		// 
 		LayoutPositions<FGVertex, FGEdge> positions = updateDestinationLocations();
-		Map<FGVertex, Point2D> destinationLocations = positions.getVertexLocations();
+		Map<FGVertex, Point> destinationLocations = positions.getVertexLocations();
 		finalEdgeArticulations = positions.getEdgeArticulations();
 
 		//
@@ -155,9 +156,9 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 		//
 		Collection<FGVertex> vertices = getVerticesToMove();
 		for (FGVertex vertex : vertices) {
-			Point2D currentPoint = graphLayout.apply(vertex);
-			Point2D startPoint = (Point2D) currentPoint.clone();
-			Point2D destinationPoint = (Point2D) destinationLocations.get(vertex).clone();
+			Point currentPoint = graphLayout.apply(vertex);
+			Point startPoint = currentPoint;
+			Point destinationPoint = destinationLocations.get(vertex);
 			TransitionPoints transitionPoints = new TransitionPoints(startPoint, destinationPoint);
 			vertexLocations.put(vertex, transitionPoints);
 		}
@@ -166,11 +167,11 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 		// We have to move edge articulations--create transition points.  Depending upon the 
 		// value of 'relayout', there may be no edges to update.
 		//
-		Map<FGEdge, List<Point2D>> edgeArticulations = positions.getEdgeArticulations();
+		Map<FGEdge, List<Point>> edgeArticulations = positions.getEdgeArticulations();
 		Collection<FGEdge> edgesToMove = graph.getEdges();
 		for (FGEdge edge : edgesToMove) {
-			List<Point2D> currentArticulations = edge.getArticulationPoints();
-			List<Point2D> newArticulations = edgeArticulations.get(edge);
+			List<Point> currentArticulations = edge.getArticulationPoints();
+			List<Point> newArticulations = edgeArticulations.get(edge);
 			if (newArticulations == null) {
 				newArticulations = Collections.emptyList();
 			}
@@ -184,8 +185,8 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 	}
 
 	private List<ArticulationTransitionPoints> getArticulationTransitionPoints(
-			List<Point2D> currentArticulations, List<Point2D> newArticulations,
-			Map<FGVertex, Point2D> destinationLocations, FGEdge edge) {
+			List<Point> currentArticulations, List<Point> newArticulations,
+			Map<FGVertex, Point> destinationLocations, FGEdge edge) {
 
 		if (currentArticulations.size() > newArticulations.size()) {
 			return getArticulationTransitionPointsWhenStartingWithMorePoints(currentArticulations,
@@ -196,13 +197,13 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 	}
 
 	private List<ArticulationTransitionPoints> getArticulationTransitionPointsWhenStartingWithMorePoints(
-			List<Point2D> currentArticulations, List<Point2D> newArticulations,
-			Map<FGVertex, Point2D> destinationLocations, FGEdge edge) {
+			List<Point> currentArticulations, List<Point> newArticulations,
+			Map<FGVertex, Point> destinationLocations, FGEdge edge) {
 		List<ArticulationTransitionPoints> transitionPoints = new ArrayList<>();
 
 		for (int i = 0; i < currentArticulations.size(); i++) {
-			Point2D startPoint = currentArticulations.get(i);
-			Point2D endPoint = (Point2D) startPoint.clone();
+			Point startPoint = currentArticulations.get(i);
+			Point endPoint = startPoint;
 			if (i < newArticulations.size()) {
 				// prefer the new articulations, while we have some
 				endPoint = newArticulations.get(i);
@@ -223,8 +224,8 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 	}
 
 	private List<ArticulationTransitionPoints> getArticulationTransitionPointsWhenStartingWithLessPoints(
-			List<Point2D> currentArticulations, List<Point2D> newArticulations,
-			Map<FGVertex, Point2D> destinationLocations, FGEdge edge) {
+			List<Point> currentArticulations, List<Point> newArticulations,
+			Map<FGVertex, Point> destinationLocations, FGEdge edge) {
 
 		List<ArticulationTransitionPoints> transitionPoints = new ArrayList<>();
 
@@ -232,13 +233,13 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 		// In this case we will have to add articulations to the current edge now so that we can
 		// animate their creation.
 		//
-		List<Point2D> newStartArticulationsPoints = new ArrayList<>();
+		List<Point> newStartArticulationsPoints = new ArrayList<>();
 
 		// default to start vertex so to handle the case where we started with no articulations
-		Point2D lastValidStartPoint = graphLayout.apply(edge.getStart());
+		Point lastValidStartPoint = graphLayout.apply(edge.getStart());
 		for (int i = 0; i < newArticulations.size(); i++) {
-			Point2D endPoint = newArticulations.get(i);
-			Point2D startPoint = (Point2D) lastValidStartPoint.clone();
+			Point endPoint = newArticulations.get(i);
+			Point startPoint = lastValidStartPoint;
 			if (i < currentArticulations.size()) {
 				// prefer the new articulations, while we have some
 				startPoint = currentArticulations.get(i);
@@ -254,7 +255,7 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 	}
 
 	private TransitionPoints getTransitionPoint(Map<FGVertex, TransitionPoints> transitionPoints,
-			Map<FGVertex, Point2D> destinationLocations, FGVertex vertex) {
+			Map<FGVertex, Point> destinationLocations, FGVertex vertex) {
 		TransitionPoints transtionPoint = transitionPoints.get(vertex);
 		if (transtionPoint != null) {
 			return transtionPoint;
@@ -265,11 +266,11 @@ public class GroupVertexFunctionGraphJob extends AbstractGroupingFunctionGraphJo
 		return createTransitionPoint(destinationLocations, vertex);
 	}
 
-	private TransitionPoints createTransitionPoint(Map<FGVertex, Point2D> destinationLocations,
+	private TransitionPoints createTransitionPoint(Map<FGVertex, Point> destinationLocations,
 			FGVertex vertex) {
-		Point2D currentPoint = graphLayout.apply(vertex);
-		Point2D startPoint = (Point2D) currentPoint.clone();
-		Point2D destinationPoint = (Point2D) destinationLocations.get(vertex).clone();
+		Point currentPoint = graphLayout.apply(vertex);
+		Point startPoint = currentPoint;//(Point2D) currentPoint.clone();
+		Point destinationPoint = destinationLocations.get(vertex);
 		return new TransitionPoints(startPoint, destinationPoint);
 	}
 }

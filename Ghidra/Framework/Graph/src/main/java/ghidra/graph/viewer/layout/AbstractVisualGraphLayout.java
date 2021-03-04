@@ -15,20 +15,16 @@
  */
 package ghidra.graph.viewer.layout;
 
-import java.awt.*;
+import java.awt.Rectangle;
+import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.util.*;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.algorithms.layout.AbstractLayout;
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.renderers.BasicEdgeRenderer;
-import edu.uci.ics.jung.visualization.renderers.Renderer.EdgeLabel;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.layout.LayoutListener.ChangeType;
@@ -39,6 +35,12 @@ import ghidra.util.datastruct.WeakDataStructureFactory;
 import ghidra.util.datastruct.WeakSet;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.layout.model.DefaultLayoutModel;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.layout.model.Point;
+import org.jungrapht.visualization.renderers.HeavyweightEdgeRenderer;
+import org.jungrapht.visualization.renderers.Renderer;
 
 /**
  * A base layout that marries the Visual Graph and Jung layout interfaces.   This class allows
@@ -47,7 +49,7 @@ import ghidra.util.task.TaskMonitor;
  * <P>This class essentially takes in client-produced grid row and column indices and 
  * produces layout locations for those values.
  *
- * <P>This an implementation the Jung {@link Layout} interface that handles most of the 
+ * <P>This an implementation the Jung {@link LayoutModel} interface that handles most of the
  * layout implementation for you.  Things to know:
  * <UL>
  * 	<LI>You should call initialize() inside of your constructor</LI>
@@ -75,11 +77,11 @@ import ghidra.util.task.TaskMonitor;
 //@formatter:off
 public abstract class AbstractVisualGraphLayout<V extends VisualVertex, 
 	                                            E extends VisualEdge<V>>
-	extends AbstractLayout<V, E>
+	extends DefaultLayoutModel<V>
 	implements VisualGraphLayout<V, E> {
 //@formatter:on
 
-	private WeakSet<LayoutListener<V, E>> listeners =
+	private WeakSet<LayoutListener<V>> listeners =
 		WeakDataStructureFactory.createSingleThreadAccessWeakSet();
 
 	private ArticulatedEdgeTransformer<V, E> edgeShapeTransformer =
@@ -92,7 +94,7 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 	protected TaskMonitor monitor = TaskMonitor.DUMMY;
 
 	protected AbstractVisualGraphLayout(Graph<V, E> graph, String layoutName) {
-		super(graph);
+		super(LayoutModel.<V>builder().graph(graph).size(600,600));
 		this.layoutName = layoutName;
 	}
 
@@ -121,17 +123,17 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 	}
 
 	@Override
-	public BasicEdgeRenderer<V, E> getEdgeRenderer() {
+	public HeavyweightEdgeRenderer<V, E> getEdgeRenderer() {
 		return edgeRenderer;
 	}
 
 	@Override
-	public Function<E, Shape> getEdgeShapeTransformer() {
+	public BiFunction<Graph<V, E>, E, Shape> getEdgeShapeTransformer() {
 		return edgeShapeTransformer;
 	}
 
 	@Override
-	public EdgeLabel<V, E> getEdgeLabelRenderer() {
+	public Renderer.EdgeLabel<V, E> getEdgeLabelRenderer() {
 		return null;
 	}
 
@@ -140,7 +142,7 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		return false;
 	}
 
-	@Override
+//	@Override
 	public void reset() {
 		// stub (usually a relayout)
 	}
@@ -166,13 +168,13 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 	 * by the Jung layout we extends, which is why we cache the results here.   Subclasses
 	 * are expected to call initialize at construction time.
 	 */
-	@Override
+//	@Override
 	public void initialize() {
 		if (layoutInitialized) {
 			return;
 		}
 
-		int vertexCount = graph.getVertexCount();
+		int vertexCount = graph.vertexSet().size();
 		if (vertexCount == 0) {
 			return;
 		}
@@ -246,19 +248,19 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		VisualGraph<V, E> originalGraph = getVisualGraph();
 		Collection<V> vertices = originalGraph.getVertices();
 		for (V v : vertices) {
-			Point2D location = originalLayout.apply(v);
-			newLayout.setLocation(v, location);
+			Point location = originalLayout.apply(v);
+			newLayout.set(v, location);
 		}
 
 		Collection<E> edges = originalGraph.getEdges();
-		Map<E, List<Point2D>> edgesToBends =
+		Map<E, List<Point>> edgesToBends =
 			edges.stream().collect(Collectors.toMap(e -> e, e -> e.getArticulationPoints()));
 
 		VisualGraph<V, E> newGraph = newLayout.getVisualGraph();
 		Collection<E> newEdges = newGraph.getEdges();
 		for (E e : newEdges) {
 
-			List<Point2D> bends = edgesToBends.get(e);
+			List<Point> bends = edgesToBends.get(e);
 			if (bends == null) {
 				// New edge is not in the old graph.  This can happen if the old graph has 
 				// grouped vertices and some edges have been removed.
@@ -266,9 +268,9 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 			}
 
 			// clone the points too so the graphs don't step on each other
-			List<Point2D> newBends = new ArrayList<>();
-			for (Point2D p : bends) {
-				newBends.add((Point2D) p.clone());
+			List<Point> newBends = new ArrayList<>();
+			for (Point p : bends) {
+				newBends.add(p);
 			}
 
 			e.setArticulationPoints(newBends);
@@ -277,22 +279,23 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		newLayout.layoutInitialized = true;
 	}
 
-	protected void applyNewLocations(Map<V, Point2D> newLocations) {
-		Set<Entry<V, Point2D>> entrySet = newLocations.entrySet();
-		for (Entry<V, Point2D> entry : entrySet) {
+	protected void applyNewLocations(Map<V, Point> newLocations) {
+		Set<Entry<V, Point>> entrySet = newLocations.entrySet();
+		for (Entry<V, Point> entry : entrySet) {
 			V vertex = entry.getKey();
-			Point2D location = entry.getValue();
-			setLocation(vertex, location);
-			vertex.setLocation(location);
+			Point location = entry.getValue();
+			layoutModel().set(vertex, location);
+//			setLocation(vertex, location);
+//			vertex.setLocation(location);
 		}
 	}
 
 	// note: some layouts do not use articulations
-	protected void applyNewArticulations(Map<E, List<Point2D>> edgeArticulations) {
-		Set<Entry<E, List<Point2D>>> entrySet = edgeArticulations.entrySet();
-		for (Entry<E, List<Point2D>> entry : entrySet) {
+	protected void applyNewArticulations(Map<E, List<Point>> edgeArticulations) {
+		Set<Entry<E, List<Point>>> entrySet = edgeArticulations.entrySet();
+		for (Entry<E, List<Point>> entry : entrySet) {
 			E edge = entry.getKey();
-			List<Point2D> articulations = entry.getValue();
+			List<Point> articulations = entry.getValue();
 			edge.setArticulationPoints(articulations);
 		}
 	}
@@ -310,10 +313,10 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		LayoutLocationMap<V, E> layoutLocations =
 			new LayoutLocationMap<>(gridLocations, transformer, isCondensed, monitor);
 
-		Map<V, Point2D> vertexLayoutLocations =
+		Map<V, Point> vertexLayoutLocations =
 			positionVerticesInLayoutSpace(transformer, vertices, layoutLocations);
 
-		Map<E, List<Point2D>> edgeLayoutArticulationLocations =
+		Map<E, List<Point>> edgeLayoutArticulationLocations =
 			positionEdgeArticulationsInLayoutSpace(transformer, vertexLayoutLocations, edges,
 				layoutLocations);
 
@@ -339,13 +342,13 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 			edgeLayoutArticulationLocations);
 	}
 
-	private Map<V, Point2D> positionVerticesInLayoutSpace(
+	private Map<V, Point> positionVerticesInLayoutSpace(
 			VisualGraphVertexShapeTransformer<V> transformer, Collection<V> vertices,
 			LayoutLocationMap<V, E> layoutLocations) throws CancelledException {
 		// use the calculated row and column sizes to place the vertices in
 		// their final positions (including x and y from bounds 'cause they're
 		// centered)
-		Map<V, Point2D> newLocations = new HashMap<>();
+		Map<V, Point> newLocations = new HashMap<>();
 		for (V vertex : vertices) {
 			monitor.checkCanceled();
 
@@ -354,16 +357,16 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 
 			Shape shape = transformer.apply(vertex);
 			Rectangle bounds = shape.getBounds();
-			Point2D location = getVertexLocation(vertex, column, row, bounds);
+			Point location = getVertexLocation(vertex, column, row, bounds);
 			newLocations.put(vertex, location);
 		}
 		return newLocations;
 	}
 
-	protected Point2D getVertexLocation(V v, Column col, Row<V> row, Rectangle bounds) {
+	protected Point getVertexLocation(V v, Column col, Row<V> row, Rectangle bounds) {
 		int x = col.x - bounds.x;
 		int y = row.y - bounds.y;
-		return new Point2D.Double(x, y);
+		return Point.of(x, y);
 	}
 
 	/**
@@ -375,7 +378,7 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 	 * @param bounds the bounds of the vertex in the layout space
 	 * @return the centered location
 	 */
-	protected Point2D getCenteredVertexLocation(V v, Column col, Row<V> row, Rectangle bounds) {
+	protected Point getCenteredVertexLocation(V v, Column col, Row<V> row, Rectangle bounds) {
 		//
 		// Move x over to compensate for vertex painting.   Edges are drawn from the center of the
 		// vertex.  Thus, if you have vertices with two different widths, then the edge between
@@ -390,24 +393,24 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		}
 
 		int y = row.y + (bounds.height >> 1);
-		return new Point2D.Double(x, y);
+		return Point.of(x, y);
 	}
 
-	protected Map<E, List<Point2D>> positionEdgeArticulationsInLayoutSpace(
-			VisualGraphVertexShapeTransformer<V> transformer, Map<V, Point2D> vertexLayoutLocations,
+	protected Map<E, List<Point>> positionEdgeArticulationsInLayoutSpace(
+			VisualGraphVertexShapeTransformer<V> transformer, Map<V, Point> vertexLayoutLocations,
 			Collection<E> edges, LayoutLocationMap<V, E> layoutLocations)
 			throws CancelledException {
 
-		Map<E, List<Point2D>> newEdgeArticulations = new HashMap<>();
+		Map<E, List<Point>> newEdgeArticulations = new HashMap<>();
 		for (E edge : edges) {
 			monitor.checkCanceled();
 
-			List<Point2D> newArticulations = new ArrayList<>();
+			List<Point> newArticulations = new ArrayList<>();
 			for (Point gridPoint : layoutLocations.articulations(edge)) {
-				Row<V> row = layoutLocations.row(gridPoint.y);
-				Column column = layoutLocations.col(gridPoint.x);
+				Row<V> row = layoutLocations.row((int)gridPoint.y);
+				Column column = layoutLocations.col((int)gridPoint.x);
 
-				Point2D location = getEdgeLocation(column, row);
+				Point location = getEdgeLocation(column, row);
 				newArticulations.add(location);
 			}
 			newEdgeArticulations.put(edge, newArticulations);
@@ -415,11 +418,11 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		return newEdgeArticulations;
 	}
 
-	protected Point2D getEdgeLocation(Column col, Row<V> row) {
-		return new Point2D.Double(col.x, row.y);
+	protected Point getEdgeLocation(Column col, Row<V> row) {
+		return Point.of(col.x, row.y);
 	}
 
-	protected Point2D getCenteredEdgeLocation(Column col, Row<V> row) {
+	protected Point getCenteredEdgeLocation(Column col, Row<V> row) {
 		//
 		// half-height offsets the articulation points, which keeps long edge lines from
 		// overlapping as much
@@ -427,12 +430,12 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		boolean isCondensed = isCondensedLayout();
 		int x = col.x + (col.getPaddedWidth(isCondensed) >> 1);
 		int y = row.y + (row.getPaddedHeight(isCondensed) >> 1);
-		return new Point2D.Double(x, y);
+		return Point.of(x, y);
 	}
 
-	private Rectangle getTotalGraphSize(Map<V, Point2D> vertexLocationMap,
-			Map<E, List<Point2D>> edgeArticulations,
-			com.google.common.base.Function<V, Shape> vertexShapeTransformer) {
+	private Rectangle getTotalGraphSize(Map<V, Point> vertexLocationMap,
+			Map<E, List<Point>> edgeArticulations,
+			Function<V, Shape> vertexShapeTransformer) {
 
 		Set<V> vertices = vertexLocationMap.keySet();
 		Set<E> edges = edgeArticulations.keySet();
@@ -441,8 +444,8 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 
 			Shape s = vertexShapeTransformer.apply(v);
 			Rectangle bounds = s.getBounds();
-			Point2D p = vertexLocationMap.get(v);
-			bounds.setLocation(new Point((int) p.getX(), (int) p.getY()));
+			Point p = vertexLocationMap.get(v);
+			bounds.setLocation(new java.awt.Point( (int)p.x, (int)p.y));
 			return bounds;
 		};
 
@@ -453,14 +456,14 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 			return bounds;
 		}
 
-		Function<E, List<Point2D>> edgeToArticulations = e -> edgeArticulations.get(e);
+		Function<E, List<Point>> edgeToArticulations = e -> edgeArticulations.get(e);
 		Rectangle bounds = GraphViewerUtils.getTotalGraphSizeInLayoutSpace(vertices, edges,
 			vertexToBounds, edgeToArticulations);
 		return bounds;
 	}
 
-	private void condense(List<Row<V>> rows, Map<V, Point2D> newLocations,
-			Map<E, List<Point2D>> newEdgeArticulations,
+	private void condense(List<Row<V>> rows, Map<V, Point> newLocations,
+			Map<E, List<Point>> newEdgeArticulations,
 			VisualGraphVertexShapeTransformer<V> transformer, double centerX, double centerY) {
 
 		//
@@ -469,29 +472,36 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		//       this point.
 		//
 		double condenseFactor = getCondenseFactor();
-		Collection<Point2D> vertexPoints = newLocations.values();
-		for (Point2D point : vertexPoints) {
-			double currentX = point.getX();
-			double currentY = point.getY();
+		Collection<Point> vertexPoints = newLocations.values();
+		for (Map.Entry<V,Point> entry : newLocations.entrySet()) {
+			Point point = entry.getValue();
+			double currentX = point.x;
+			double currentY = point.y;
 
 			// move closer to the center
 			double deltaX = centerX - currentX;
 			double offsetX = (deltaX * condenseFactor) + currentX;
 
-			point.setLocation(offsetX, currentY);
+//			point.setLocation(offsetX, currentY);
+			entry.setValue(Point.of(offsetX, currentY));
 		}
 
-		Collection<List<Point2D>> edgeArticulations = newEdgeArticulations.values();
-		for (List<Point2D> edgePoints : edgeArticulations) {
-			for (Point2D point : edgePoints) {
-				double currentX = point.getX();
-				double currentY = point.getY();
+		Collection<List<Point>> edgeArticulations = newEdgeArticulations.values();
+		for (List<Point> edgePoints : edgeArticulations) {
+			for (Map.Entry<E,List<Point>> entry : newEdgeArticulations.entrySet()) {
+				List<Point> newList = new ArrayList<>();
+				for (Point point : entry.getValue()) {
+					double currentX = point.x;
+					double currentY = point.y;
 
-				// move closer to the center
-				double deltaX = centerX - currentX;
-				double offsetX = (deltaX * condenseFactor) + currentX;
+					// move closer to the center
+					double deltaX = centerX - currentX;
+					double offsetX = (deltaX * condenseFactor) + currentX;
 
-				point.setLocation(offsetX, currentY);
+//					point.setLocation(offsetX, currentY);
+					newList.add(Point.of(offsetX, currentY));
+				}
+				entry.setValue(newList);
 			}
 		}
 
@@ -512,7 +522,7 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		return .5; // 50% 
 	}
 
-	private void unclip(List<Row<V>> rows, Map<V, Point2D> newLocations,
+	private void unclip(List<Row<V>> rows, Map<V, Point> newLocations,
 			VisualGraphVertexShapeTransformer<V> transformer) {
 
 		for (Row<V> row : rows) {
@@ -525,7 +535,7 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		}
 	}
 
-	private void moveLeft(Row<V> row, int moveLeftStartIndex, Map<V, Point2D> vertexLocations,
+	private void moveLeft(Row<V> row, int moveLeftStartIndex, Map<V, Point> vertexLocations,
 			VisualGraphVertexShapeTransformer<V> transformer) {
 
 		for (int i = moveLeftStartIndex; i >= 0; i--) {
@@ -535,7 +545,7 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		}
 	}
 
-	private void moveRight(Row<V> row, int moveRightStartIndex, Map<V, Point2D> vertexLocations,
+	private void moveRight(Row<V> row, int moveRightStartIndex, Map<V, Point> vertexLocations,
 			VisualGraphVertexShapeTransformer<V> transformer) {
 
 		for (int i = moveRightStartIndex; i < row.getColumnCount(); i++) {
@@ -569,19 +579,19 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		return vertex;
 	}
 
-	private void moveLeftIfOverlaps(Map<V, Point2D> vertexLocations,
+	private void moveLeftIfOverlaps(Map<V, Point> vertexLocations,
 			VisualGraphVertexShapeTransformer<V> xform, V vertex, V rightVertex) {
 
 		moveIfOverlaps(vertexLocations, xform, vertex, rightVertex, false);
 	}
 
-	private void moveRightIfOverlaps(Map<V, Point2D> vertexLocations,
+	private void moveRightIfOverlaps(Map<V, Point> vertexLocations,
 			VisualGraphVertexShapeTransformer<V> xform, V vertex, V leftVertex) {
 
 		moveIfOverlaps(vertexLocations, xform, vertex, leftVertex, true);
 	}
 
-	private void moveIfOverlaps(Map<V, Point2D> vertexLocations,
+	private void moveIfOverlaps(Map<V, Point> vertexLocations,
 			VisualGraphVertexShapeTransformer<V> xform, V vertex, V otherVertex,
 			boolean moveRight) {
 
@@ -591,11 +601,11 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		}
 
 		Shape vertexShape = xform.apply(vertex);
-		Point2D vertexPoint = vertexLocations.get(vertex);
+		Point vertexPoint = vertexLocations.get(vertex);
 		Rectangle vertexBounds = vertexShape.getBounds();
 
 		Shape otherVertexShape = xform.apply(otherVertex);
-		Point2D otherVertexPoint = vertexLocations.get(otherVertex);
+		Point otherVertexPoint = vertexLocations.get(otherVertex);
 		Rectangle otherVertexBounds = otherVertexShape.getBounds();
 
 		//
@@ -604,18 +614,18 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 		// 
 		int myWidth = vertexBounds.width >> 1; // half width
 		int myHeight = vertexBounds.height >> 1; // half height
-		double x = vertexPoint.getX();
-		double y = vertexPoint.getY();
+		double x = vertexPoint.x;
+		double y = vertexPoint.y;
 
 		int otherWidth = otherVertexBounds.width >> 1;
 		int otherHeight = otherVertexBounds.height >> 1;
-		double otherX = otherVertexPoint.getX();
-		double otherY = otherVertexPoint.getY();
+		double otherX = otherVertexPoint.x;
+		double otherY = otherVertexPoint.y;
 
-		Point myNewPoint = new Point((int) x - myWidth, (int) y - myHeight);
+		java.awt.Point myNewPoint = new java.awt.Point((int) x - myWidth, (int) y - myHeight);
 		vertexBounds.setLocation(myNewPoint);
 
-		Point otherNewPoint = new Point((int) otherX - otherWidth, (int) otherY - otherHeight);
+		java.awt.Point otherNewPoint = new java.awt.Point((int) otherX - otherWidth, (int) otherY - otherHeight);
 		otherVertexBounds.setLocation(otherNewPoint);
 
 		boolean hasCrossed = hasCrossed(moveRight, myNewPoint, otherNewPoint);
@@ -631,9 +641,11 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 			offset = -offset;
 		}
 
-		double oldY = vertexPoint.getY();
+		double oldY = vertexPoint.y;
 		double newX = otherX + offset;
-		vertexPoint.setLocation(newX, oldY); // editing this point changes the map's value
+//		vertexPoint.setLocation(newX, oldY); // editing this point changes the map's value
+		vertexPoint = Point.of(newX, oldY);
+		vertexLocations.put(vertex, vertexPoint);
 
 // DEBUG this can be deleted in the future, future, future		
 //		//@formatter:off
@@ -653,7 +665,7 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 
 	}
 
-	private boolean hasCrossed(boolean moveRight, Point p1, Point p2) {
+	private boolean hasCrossed(boolean moveRight, java.awt.Point p1, java.awt.Point p2) {
 		// The neighbors do not touch, but sometimes this is because our 'vertex' has been
 		// moved to far past the 'otherVertex'.  So, we also have to check the x values.
 
@@ -665,43 +677,43 @@ public abstract class AbstractVisualGraphLayout<V extends VisualVertex,
 //==================================================================================================
 
 	@Override
-	public void addLayoutListener(LayoutListener<V, E> listener) {
+	public void addLayoutListener(LayoutListener<V> listener) {
 		listeners.add(listener);
 	}
 
 	@Override
-	public void removeLayoutListener(LayoutListener<V, E> listener) {
+	public void removeLayoutListener(LayoutListener<V> listener) {
 
-		Iterator<LayoutListener<V, E>> iterator = listeners.iterator();
+		Iterator<LayoutListener<V>> iterator = listeners.iterator();
 		for (; iterator.hasNext();) {
-			LayoutListener<V, E> layoutListener = iterator.next();
+			LayoutListener<V> layoutListener = iterator.next();
 			if (layoutListener == listener) {
 				iterator.remove();
 			}
 		}
 	}
 
-	private void fireVertexLocationChanged(V v, Point2D p) {
+	private void fireVertexLocationChanged(V v, Point p) {
 		fireVertexLocationChanged(v, p, ChangeType.USER);
 	}
 
-	private void fireVertexLocationChanged(V v, Point2D p, ChangeType type) {
-		Iterator<LayoutListener<V, E>> iterator = listeners.iterator();
+	private void fireVertexLocationChanged(V v, Point p, ChangeType type) {
+		Iterator<LayoutListener<V>> iterator = listeners.iterator();
 		for (; iterator.hasNext();) {
-			LayoutListener<V, E> layoutListener = iterator.next();
+			LayoutListener<V> layoutListener = iterator.next();
 			layoutListener.vertexLocationChanged(v, p, type);
 		}
 	}
 
 	@Override
-	public void setLocation(V v, Point2D location) {
-		super.setLocation(v, location);
+	public void setLocation(V v, Point location) {
+		super.set(v, location);
 		fireVertexLocationChanged(v, location);
 	}
 
 	@Override
-	public void setLocation(V v, Point2D location, ChangeType changeType) {
-		super.setLocation(v, location);
+	public void setLocation(V v, Point location, ChangeType changeType) {
+		super.set(v, location);
 		fireVertexLocationChanged(v, location, changeType);
 	}
 

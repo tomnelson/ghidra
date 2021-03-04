@@ -17,18 +17,23 @@ package ghidra.graph.viewer.vertex;
 
 import static ghidra.graph.viewer.GraphViewerUtils.PAINT_ZOOM_THRESHOLD;
 
-import java.awt.*;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.graph.util.Context;
-import edu.uci.ics.jung.visualization.RenderContext;
-import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationModel;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.transform.shape.GraphicsDecorator;
+
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Paint;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.util.function.Function;
 
 /**
  * A renderer for the {@link VisualGraph} system.
@@ -58,23 +63,23 @@ public class VisualVertexRenderer<V extends VisualVertex, E extends VisualEdge<V
 		extends AbstractVisualVertexRenderer<V, E> {
 
 	@Override
-	public void paintVertex(RenderContext<V, E> rc, Layout<V, E> layout, V vertex) {
+	public void paintVertex(RenderContext<V, E> rc, LayoutModel<V> layoutModel, V vertex) {
 
-		Graph<V, E> graph = layout.getGraph();
-		if (!rc.getVertexIncludePredicate().apply(
-			Context.<Graph<V, E>, V> getInstance(graph, vertex))) {
+		Graph<V, E> graph = layoutModel.getGraph();
+		if (!rc.getVertexIncludePredicate().test(vertex)) {
+//			Context.<Graph<V, E>, V> getInstance(graph, vertex))) {
 			return;
 		}
 
 		GraphicsDecorator g = rc.getGraphicsContext();
-		GraphicsDecorator gCopy = getEmphasisGraphics(g, vertex, rc, layout);
+		GraphicsDecorator gCopy = getEmphasisGraphics(g, vertex, rc, layoutModel);
 
 		// Note: for most graphs, the full/compact shapes are the same
-		Shape fullShape = getFullShape(rc, layout, vertex);
-		Shape compactShape = getCompactShape(rc, layout, vertex);
-		if (!vertexHit(rc, fullShape)) {
-			return;
-		}
+		Shape fullShape = getFullShape(rc, layoutModel, vertex);
+		Shape compactShape = getCompactShape(rc, layoutModel, vertex);
+//		if (!vertexHit(rc, fullShape)) {
+//			return;
+//		}
 
 		Rectangle bounds = fullShape.getBounds();
 
@@ -82,7 +87,7 @@ public class VisualVertexRenderer<V extends VisualVertex, E extends VisualEdge<V
 
 		paintDropShadow(rc, gCopy, compactShape, vertex);
 
-		paintVertexOrVertexShape(rc, gCopy, layout, vertex, compactShape, fullShape);
+		paintVertexOrVertexShape(rc, gCopy, layoutModel, vertex, compactShape, fullShape);
 
 		gCopy.dispose();
 	}
@@ -95,7 +100,7 @@ public class VisualVertexRenderer<V extends VisualVertex, E extends VisualEdge<V
 	}
 
 	protected void paintVertexOrVertexShape(RenderContext<V, E> rc, GraphicsDecorator g,
-			Layout<V, E> layout, V vertex, Shape compactShape, Shape fullShape) {
+			LayoutModel<V> layout, V vertex, Shape compactShape, Shape fullShape) {
 
 		if (isScaledPastVertexPaintingThreshold(rc)) {
 			paintScaledVertex(rc, vertex, g, compactShape);
@@ -116,7 +121,7 @@ public class VisualVertexRenderer<V extends VisualVertex, E extends VisualEdge<V
 	}
 
 	protected void paintVertex(RenderContext<V, E> rc, GraphicsDecorator g, V vertex,
-			Rectangle bounds, Layout<V, E> layout) {
+							   Rectangle bounds, LayoutModel<V> layout) {
 
 		Component component = vertex.getComponent();
 		g.draw(component, rc.getRendererPane(), bounds.x, bounds.y, bounds.width, bounds.height,
@@ -135,7 +140,7 @@ public class VisualVertexRenderer<V extends VisualVertex, E extends VisualEdge<V
 
 	protected void paintScaledVertex(RenderContext<V, E> rc, V vertex, GraphicsDecorator g,
 			Shape shape) {
-		Function<? super V, Paint> fillXform = rc.getVertexFillPaintTransformer();
+		Function<? super V, Paint> fillXform = rc.getVertexFillPaintFunction();
 		Paint fillPaint = fillXform.apply(vertex);
 		if (fillPaint == null) {
 			return;

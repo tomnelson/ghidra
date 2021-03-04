@@ -27,8 +27,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
 
-import edu.uci.ics.jung.algorithms.layout.DAGLayout;
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import generic.test.AbstractGenericTest;
 import ghidra.graph.graphs.*;
 import ghidra.graph.support.TestGraphLayout;
@@ -61,7 +59,7 @@ public class FilterVerticesJobTest extends AbstractFilteringVisualGraphTest {
 		// to work properly
 		System.setProperty(SystemUtilities.HEADLESS_PROPERTY, "false");
 
-		graph = new FilteringVisualGraph<AbstractTestVertex, TestEdge>() {
+		graph = new FilteringVisualGraph<>() {
 
 			@Override
 			public VisualGraphLayout<AbstractTestVertex, TestEdge> getLayout() {

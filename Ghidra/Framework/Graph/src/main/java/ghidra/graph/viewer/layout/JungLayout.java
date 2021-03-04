@@ -15,13 +15,13 @@
  */
 package ghidra.graph.viewer.layout;
 
-import edu.uci.ics.jung.algorithms.layout.Layout;
 import ghidra.graph.VisualGraph;
 import ghidra.graph.viewer.VisualEdge;
 import ghidra.graph.viewer.VisualVertex;
+import org.jungrapht.visualization.layout.model.LayoutModel;
 
 /**
- * A class that defines a simple Jung {@link Layout} interface for 
+ * A class that defines a simple Jung {@link LayoutModel} interface for
  * {@link VisualVertex Visual Vertices} and {@link VisualEdge}s 
  *
  * @param <V> the vertex type
@@ -33,18 +33,18 @@ public class JungLayout<V extends VisualVertex,
 	extends JungWrappingVisualGraphLayoutAdapter<V, E> {
 //@formatter:on
 
-	public JungLayout(Layout<V, E> jungLayout) {
+	public JungLayout(LayoutModel<V> jungLayout) {
 		super(jungLayout);
 	}
 
 	@Override
-	protected Layout<V, E> cloneJungLayout(VisualGraph<V, E> newGraph) {
+	protected LayoutModel<V> cloneJungLayout(VisualGraph<V, E> newGraph) {
 
-		Layout<V, E> newJungLayout = super.cloneJungLayout(newGraph);
+		LayoutModel<V> newJungLayout = super.cloneJungLayout(newGraph);
 		return new JungLayout<>(newJungLayout);
 	}
 
-	Layout<?, ?> getJungLayout() {
+	LayoutModel<?> getJungLayout() {
 		return delegate;
 	}
 }

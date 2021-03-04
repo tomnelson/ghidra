@@ -15,12 +15,14 @@
  */
 package ghidra.graph.viewer;
 
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.VisualizationServer;
+import org.jungrapht.visualization.control.ScalingControl;
+import org.jungrapht.visualization.transform.MutableTransformer;
+
 import java.awt.geom.Point2D;
 
-import edu.uci.ics.jung.visualization.Layer;
-import edu.uci.ics.jung.visualization.VisualizationServer;
-import edu.uci.ics.jung.visualization.control.ScalingControl;
-import edu.uci.ics.jung.visualization.transform.MutableTransformer;
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 /**
  * An implementation of {@link ScalingControl} that allows us to zoom in and out of the view.
@@ -30,7 +32,7 @@ public class VisualGraphScalingControl implements ScalingControl {
 	private double crossover = 1.0; // full size
 
 	@Override
-	public void scale(VisualizationServer<?, ?> vv, float amount, Point2D at) {
+	public void scale(VisualizationServer<?, ?> vv, double amount, Point2D at) {
 		MutableTransformer layoutTransformer =
 			vv.getRenderContext().getMultiLayerTransformer().getTransformer(Layer.LAYOUT);
 		MutableTransformer viewTransformer =
@@ -56,6 +58,36 @@ public class VisualGraphScalingControl implements ScalingControl {
 			viewTransformer.scale(inverseViewScale, inverseViewScale, at);
 		}
 		vv.repaint();
+	}
+
+	@Override
+	public void scale(VisualizationServer<?, ?> vv, double horizontalAmount, double verticalAmount, Point2D at) {
+		MutableTransformer layoutTransformer =
+				vv.getRenderContext().getMultiLayerTransformer().getTransformer(Layer.LAYOUT);
+		MutableTransformer viewTransformer =
+				vv.getRenderContext().getMultiLayerTransformer().getTransformer(Layer.VIEW);
+		double modelScale = layoutTransformer.getScale();
+		double viewScale = viewTransformer.getScale();
+		double inverseViewScale = Math.sqrt(crossover) / viewScale;
+		double scale = modelScale * viewScale;
+
+		//
+		// Use the 'at' value unless the options dictate otherwise
+		//
+		if (!useMouseRelativeZoom(vv)) {
+			at = vv.getCenter();
+		}
+
+		if (scale * Math.min(horizontalAmount, verticalAmount) < crossover) {
+			// scale the viewTransformer, return the layoutTransformer to crossover value
+			viewTransformer.scale(horizontalAmount, verticalAmount, at);
+		}
+		// just restore the scale, but don't adjust the layout
+		else {
+			viewTransformer.scale(inverseViewScale, inverseViewScale, at);
+		}
+		vv.repaint();
+
 	}
 
 	private boolean useMouseRelativeZoom(VisualizationServer<?, ?> vv) {

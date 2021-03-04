@@ -123,11 +123,11 @@ public class FunctionCallGraph extends FilteringVisualGraph<FcgVertex, FcgEdge> 
 	public FunctionCallGraph copy() {
 
 		FunctionCallGraph newGraph = new FunctionCallGraph();
-		for (FcgVertex v : vertices.keySet()) {
+		for (FcgVertex v : vertexSet()) {
 			newGraph.addVertex(v);
 		}
 
-		for (FcgEdge e : edges.keySet()) {
+		for (FcgEdge e : edgeSet()) {
 			newGraph.addEdge(e);
 		}
 

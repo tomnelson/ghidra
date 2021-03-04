@@ -33,6 +33,7 @@ import ghidra.program.model.address.Address;
 import ghidra.util.Msg;
 import ghidra.util.exception.CancelledException;
 import ghidra.util.task.TaskMonitor;
+import org.jungrapht.visualization.layout.model.Point;
 import resources.Icons;
 
 /**
@@ -77,7 +78,7 @@ public class TestFGLayoutProvider extends FGLayoutProvider {
 		}
 
 		@Override
-		protected Point2D getVertexLocation(FGVertex v, Column col, Row<FGVertex> row,
+		protected Point getVertexLocation(FGVertex v, Column col, Row<FGVertex> row,
 				Rectangle bounds) {
 			return getCenteredVertexLocation(v, col, row, bounds);
 		}
@@ -235,12 +236,12 @@ public class TestFGLayoutProvider extends FGLayoutProvider {
 		}
 
 		@Override
-		protected Map<FGEdge, List<Point2D>> positionEdgeArticulationsInLayoutSpace(
+		protected Map<FGEdge, List<Point>> positionEdgeArticulationsInLayoutSpace(
 				VisualGraphVertexShapeTransformer<FGVertex> transformer,
-				Map<FGVertex, Point2D> vertexLayoutLocations, Collection<FGEdge> edges,
+				Map<FGVertex, Point> vertexLayoutLocations, Collection<FGEdge> edges,
 				LayoutLocationMap<FGVertex, FGEdge> layoutLocations) throws CancelledException {
 
-			Map<FGEdge, List<Point2D>> newEdgeArticulations = new HashMap<>();
+			Map<FGEdge, List<Point>> newEdgeArticulations = new HashMap<>();
 
 			// 
 			// Route our edges!
@@ -259,9 +260,9 @@ public class TestFGLayoutProvider extends FGLayoutProvider {
 
 				Column startCol = layoutLocations.col(startVertex);
 				Column endCol = layoutLocations.col(endVertex);
-				Point2D start = vertexLayoutLocations.get(startVertex);
-				Point2D end = vertexLayoutLocations.get(endVertex);
-				List<Point2D> articulations = new ArrayList<>();
+				Point start = vertexLayoutLocations.get(startVertex);
+				Point end = vertexLayoutLocations.get(endVertex);
+				List<Point> articulations = new ArrayList<>();
 
 				int direction = 20;
 				if (startCol.index < endCol.index) { // going forward on the x-axis
@@ -293,20 +294,20 @@ public class TestFGLayoutProvider extends FGLayoutProvider {
 					//
 					Shape shape = transformer.apply(startVertex);
 					Rectangle bounds = shape.getBounds();
-					double vertexBottom = start.getY() + (bounds.height >> 1); // location is centered
+					double vertexBottom = start.y + (bounds.height >> 1); // location is centered
 
-					double x1 = start.getX() + direction;
-					double y1 = start.getY(); // hidden
-					articulations.add(new Point2D.Double(x1, y1));
+					double x1 = start.x + direction;
+					double y1 = start.y; // hidden
+					articulations.add(Point.of(x1, y1));
 
 					double x2 = x1;
 					double y2 = vertexBottom + offsetFromVertex;
-					y2 = end.getY();
-					articulations.add(new Point2D.Double(x2, y2));
+					y2 = end.y;
+					articulations.add(Point.of(x2, y2));
 
-					double x3 = end.getX() + (-direction);
+					double x3 = end.x + (-direction);
 					double y3 = y2;
-					articulations.add(new Point2D.Double(x3, y3));
+					articulations.add(Point.of(x3, y3));
 
 //						double x4 = x3;
 //						double y4 = end.getY(); // hidden
@@ -318,23 +319,23 @@ public class TestFGLayoutProvider extends FGLayoutProvider {
 
 					Shape shape = transformer.apply(startVertex);
 					Rectangle bounds = shape.getBounds();
-					double vertexBottom = start.getY() + (bounds.height >> 1); // location is centered
+					double vertexBottom = start.y + (bounds.height >> 1); // location is centered
 
-					double x1 = start.getX() + (direction);
-					double y1 = start.getY(); // hidden
-					articulations.add(new Point2D.Double(x1, y1));
+					double x1 = start.x + (direction);
+					double y1 = start.y; // hidden
+					articulations.add(Point.of(x1, y1));
 
 					double x2 = x1;
 					double y2 = vertexBottom + offsetFromVertex;
-					articulations.add(new Point2D.Double(x2, y2));
+					articulations.add(Point.of(x2, y2));
 
-					double x3 = end.getX() + (-direction);
+					double x3 = end.x + (-direction);
 					double y3 = y2;
-					articulations.add(new Point2D.Double(x3, y3));
+					articulations.add(Point.of(x3, y3));
 
 					double x4 = x3;
-					double y4 = end.getY(); // hidden
-					articulations.add(new Point2D.Double(x4, y4));
+					double y4 = end.y; // hidden
+					articulations.add(Point.of(x4, y4));
 				}
 
 				else {  // same column--nothing to route

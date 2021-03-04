@@ -18,17 +18,24 @@ package ghidra.graph.viewer.renderer;
 import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.util.*;
+import java.util.function.Function;
 
-import com.google.common.base.Function;
-
-import edu.uci.ics.jung.algorithms.layout.Layout;
-import edu.uci.ics.jung.graph.Graph;
-import edu.uci.ics.jung.visualization.*;
-import edu.uci.ics.jung.visualization.renderers.Renderer;
-import edu.uci.ics.jung.visualization.transform.shape.GraphicsDecorator;
 import ghidra.graph.viewer.*;
 import ghidra.graph.viewer.edge.BasicEdgeLabelRenderer;
 import ghidra.graph.viewer.layout.*;
+import org.apache.logging.log4j.core.Layout;
+import org.jgrapht.Graph;
+import org.jungrapht.visualization.MultiLayerTransformer;
+import org.jungrapht.visualization.RenderContext;
+import org.jungrapht.visualization.VisualizationModel;
+import org.jungrapht.visualization.layout.algorithms.LayoutAlgorithm;
+import org.jungrapht.visualization.layout.model.LayoutModel;
+import org.jungrapht.visualization.renderers.Renderer;
+import org.jungrapht.visualization.transform.shape.GraphicsDecorator;
+
+import javax.swing.*;
+
+import static org.jungrapht.visualization.MultiLayerTransformer.*;
 
 /**
  * This was created to add the ability to paint selected vertices above other vertices.  We need
@@ -39,7 +46,7 @@ import ghidra.graph.viewer.layout.*;
  * @param <E> the edge type 
  */
 public class VisualGraphRenderer<V extends VisualVertex, E extends VisualEdge<V>>
-		extends edu.uci.ics.jung.visualization.renderers.BasicRenderer<V, E> {
+		extends org.jungrapht.visualization.renderers.BiModalRenderer<V, E> {
 
 	/**
 	 * Used for displaying grid information for graph layouts
@@ -48,12 +55,13 @@ public class VisualGraphRenderer<V extends VisualVertex, E extends VisualEdge<V>
 
 	private Renderer.EdgeLabel<V, E> edgeLabelRenderer = new BasicEdgeLabelRenderer<>();
 
-	public VisualGraphRenderer(Renderer.EdgeLabel<V, E> edgeLabelRenderer) {
+	public VisualGraphRenderer(JComponent component, Renderer.EdgeLabel<V, E> edgeLabelRenderer) {
+		super(component, new HashMap<>());
 		this.edgeLabelRenderer = edgeLabelRenderer;
 	}
 
 	@Override
-	public void render(RenderContext<V, E> renderContext, Layout<V, E> layout) {
+	public void render(RenderContext<V, E> renderContext, LayoutModel<V> layout) {
 		try {
 			mimickSuperPaintingWithoutPaintingSelectedVertices(renderContext, layout);
 		}
@@ -69,20 +77,20 @@ public class VisualGraphRenderer<V extends VisualVertex, E extends VisualEdge<V>
 	}
 
 	private void mimickSuperPaintingWithoutPaintingSelectedVertices(
-			RenderContext<V, E> renderContext, Layout<V, E> layout) {
+			RenderContext<V, E> renderContext, LayoutModel<V> layoutModel) {
+		Graph<V, E> graph = layoutModel.getGraph();
+		for (E e : graph.edgeSet()) {
 
-		for (E e : layout.getGraph().getEdges()) {
-
-			renderEdge(renderContext, layout, e);
-			renderEdgeLabel(renderContext, layout, e);
+			renderEdge(renderContext, layoutModel, e);
+			renderEdgeLabel(renderContext, layoutModel, e);
 		}
 
-		Collection<V> defaultVertices = layout.getGraph().getVertices();
+		Collection<V> defaultVertices = layoutModel.getGraph().vertexSet();
 		List<V> vertices = GraphViewerUtils.createCollectionWithZOrderBySelection(defaultVertices);
 
 		for (V v : vertices) {
-			renderVertex(renderContext, layout, v);
-			renderVertexLabel(renderContext, layout, v);
+			renderVertex(renderContext, layoutModel, v);
+			renderVertexLabel(renderContext, layoutModel, v);
 		}
 
 		// paint all the edges
@@ -92,13 +100,13 @@ public class VisualGraphRenderer<V extends VisualVertex, E extends VisualEdge<V>
 //			renderEdgeLabel(renderContext, layout, e);
 //		}
 
-		paintLayoutGridCells(renderContext, layout);
+		paintLayoutGridCells(renderContext, layoutModel);
 	}
 
 	@Override
-	public void renderVertexLabel(RenderContext<V, E> rc, Layout<V, E> layout, V v) {
+	public void renderVertexLabel(RenderContext<V, E> rc, LayoutModel<V> layout, V v) {
 
-		String label = rc.getVertexLabelTransformer().apply(v);
+		String label = rc.getVertexLabelFunction().apply(v);
 		if (label == null) {
 			return;
 		}
@@ -107,13 +115,13 @@ public class VisualGraphRenderer<V extends VisualVertex, E extends VisualEdge<V>
 	}
 
 	@Override
-	public void renderEdgeLabel(RenderContext<V, E> rc, Layout<V, E> layout, E e) {
+	public void renderEdgeLabel(RenderContext<V, E> rc, LayoutModel<V> layout, E e) {
 
 		if (edgeLabelRenderer == null) {
 			return;
 		}
 
-		Function<? super E, String> xform = rc.getEdgeLabelTransformer();
+		Function<? super E, String> xform = rc.getEdgeLabelFunction();
 		String label = xform.apply(e);
 		if (label == null) {
 			return;
@@ -122,7 +130,7 @@ public class VisualGraphRenderer<V extends VisualVertex, E extends VisualEdge<V>
 		edgeLabelRenderer.labelEdge(rc, layout, e, xform.apply(e));
 	}
 
-	private void paintLayoutGridCells(RenderContext<V, E> renderContext, Layout<V, E> layout) {
+	private void paintLayoutGridCells(RenderContext<V, E> renderContext, LayoutModel<V> layout) {
 
 		// to enable this debug, search java files for commented-out uses of 'DEBUG_ROW_COL_MAP'
 		Graph<V, E> graph = layout.getGraph();

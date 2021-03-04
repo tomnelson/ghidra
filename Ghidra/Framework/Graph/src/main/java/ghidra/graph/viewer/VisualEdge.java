@@ -19,6 +19,7 @@ import java.awt.geom.Point2D;
 import java.util.List;
 
 import ghidra.graph.GEdge;
+import org.jungrapht.visualization.layout.model.Point;
 
 /**
  * An edge that contains properties and state related to a user interface.
@@ -98,16 +99,16 @@ public interface VisualEdge<V extends VisualVertex> extends GEdge<V> {
 	 * 
 	 * @return the points (in View Space space) of the articulation.
 	 */
-	public List<Point2D> getArticulationPoints();
+	public List<Point> getArticulationPoints();
 
 	/**
 	 * Sets the articulation points for the given edge
 	 * 
 	 * <P><A HREF="#articulations">What are articulations?</A>
-	 * 
+	 *
 	 * @param points the points
 	 */
-	public void setArticulationPoints(List<Point2D> points);
+	public void setArticulationPoints(List<Point> points);
 
 	/**
 	 * Creates a new edge of this type using the given vertices.

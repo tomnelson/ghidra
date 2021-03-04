@@ -15,12 +15,13 @@
  */
 package ghidra.graph.viewer.event.mouse;
 
+import org.jungrapht.visualization.VisualizationViewer;
+import org.jungrapht.visualization.control.AbstractGraphMousePlugin;
+
 import java.awt.Cursor;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 
-import edu.uci.ics.jung.visualization.VisualizationViewer;
-import edu.uci.ics.jung.visualization.control.AbstractGraphMousePlugin;
 
 public class VisualGraphCursorRestoringGraphMousePlugin<V, E> extends AbstractGraphMousePlugin
 		implements MouseMotionListener {

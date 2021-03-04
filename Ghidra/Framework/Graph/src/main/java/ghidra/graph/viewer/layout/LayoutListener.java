@@ -15,15 +15,16 @@
  */
 package ghidra.graph.viewer.layout;
 
+import org.jungrapht.visualization.layout.model.Point;
+
 import java.awt.geom.Point2D;
 
 /**
  * A listener for layout changes.
  *
  * @param <V> the vertex type
- * @param <E> the edge type
  */
-public interface LayoutListener<V, E> {
+public interface LayoutListener<V> {
 
 	public enum ChangeType {
 		USER,      		// real changes that should be tracked 
@@ -38,5 +39,5 @@ public interface LayoutListener<V, E> {
 	 * @param point the new vertex location
 	 * @param changeType the type of the change
 	 */
-	public void vertexLocationChanged(V v, Point2D point, ChangeType changeType);
+	public void vertexLocationChanged(V v, Point point, ChangeType changeType);
 }
