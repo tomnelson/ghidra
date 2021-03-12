@@ -15,11 +15,6 @@
  */
 package ghidra.graph.visualization;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import ghidra.framework.options.Options;
 import ghidra.framework.options.PreferenceState;
 import ghidra.framework.plugintool.PluginTool;
@@ -29,39 +24,33 @@ import ghidra.util.HelpLocation;
 import ghidra.util.Swing;
 import ghidra.util.task.TaskMonitor;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class DefaultGraphDisplayProvider implements GraphDisplayProvider {
 
 	private static final String PREFERENCES_KEY = "GRAPH_DISPLAY_SERVICE";
 	private static final String DEFAULT_SATELLITE_STATE = "DEFAULT_SATELLITE_STATE";
 	private final Set<DefaultGraphDisplay> displays = new HashSet<>();
 	private PluginTool pluginTool;
-	private Options options;
+	private GraphOptionsAdapter options;
 	private int displayCounter = 1;
 	private boolean defaultSatelliteState;
 	private PreferenceState preferences;
+	private String name = "Default Graph Display";
 
 	@Override
 	public String getName() {
-		return "Default Graph Display";
+		return this.name;
 	}
 
 	public PluginTool getPluginTool() {
 		return pluginTool;
 	}
 
-	public Options getOptions() {
-		return options;
-	}
-
-	@Override
-	public GraphDisplay getGraphDisplay(boolean reuseGraph,  TaskMonitor monitor) {
-		return getGraphDisplay(reuseGraph, Collections.emptyMap(), monitor);
-	}
-
 		@Override
-	public GraphDisplay getGraphDisplay(boolean reuseGraph, Map<String, String> properties,
-			TaskMonitor monitor) {
-
+	public GraphDisplay getGraphDisplay(boolean reuseGraph,
+										  TaskMonitor monitor) {
 		if (reuseGraph && !displays.isEmpty()) {
 			DefaultGraphDisplay visibleGraph = getVisibleGraph();
 			visibleGraph.restoreToDefaultSetOfActions();
@@ -69,7 +58,9 @@ public class DefaultGraphDisplayProvider implements GraphDisplayProvider {
 		}
 
 		DefaultGraphDisplay display =
-			Swing.runNow(() -> new DefaultGraphDisplay(this, properties, displayCounter++));
+			Swing.runNow(() -> new DefaultGraphDisplay(this,
+					options,
+					displayCounter++));
 		displays.add(display);
 		return display;
 	}
@@ -77,7 +68,7 @@ public class DefaultGraphDisplayProvider implements GraphDisplayProvider {
 	@Override
 	public void initialize(PluginTool tool, Options graphOptions) {
 		this.pluginTool = tool;
-		this.options = graphOptions;
+		this.options = new GraphOptionsAdapter(graphOptions,  name);
 		preferences = pluginTool.getWindowManager().getPreferenceState(PREFERENCES_KEY);
 		if (preferences == null) {
 			preferences = new PreferenceState();
@@ -102,7 +93,7 @@ public class DefaultGraphDisplayProvider implements GraphDisplayProvider {
 
 	@Override
 	public void optionsChanged(Options graphOptions) {
-		// no supported options
+		// no cached options to update
 	}
 
 	@Override

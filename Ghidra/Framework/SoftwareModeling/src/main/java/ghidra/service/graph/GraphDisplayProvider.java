@@ -34,7 +34,7 @@ public interface GraphDisplayProvider extends ExtensionPoint {
 	 * The name of this provider (for displaying as menu option when graphing)
 	 * @return the name of this provider.
 	 */
-	public String getName();
+	String getName();
 
 	/**
 	 * Returns a GraphDisplay that can be used to "display" a graph
@@ -47,26 +47,12 @@ public interface GraphDisplayProvider extends ExtensionPoint {
 	public GraphDisplay getGraphDisplay(boolean reuseGraph,	TaskMonitor monitor) throws GraphException;
 
 	/**
-	 * Returns a GraphDisplay that can be used to "display" a graph
-	 *
-	 * @param reuseGraph if true, this provider will attempt to re-use an existing GraphDisplay
-	 * @param properties a {@code Map} of property key/values that can be used to customize the display
-	 * @param monitor the {@link TaskMonitor} that can be used to monitor and cancel the operation
-	 * @return A GraphDisplay that can be used to display (or otherwise consume - e.g. export) the graph
-	 * @throws GraphException thrown if there is a problem creating a GraphDisplay
-	 */
-	default GraphDisplay getGraphDisplay(boolean reuseGraph, Map<String, String> properties,
-										TaskMonitor monitor) throws GraphException {
-		return getGraphDisplay(reuseGraph, monitor);
-	}
-
-	/**
 	 * Provides an opportunity for this provider to register and read tool options
 	 * 
 	 * @param tool the tool hosting this display
 	 * @param options the tool options for graphing
 	 */
-	public void initialize(PluginTool tool, Options options);
+	void initialize(PluginTool tool, Options options);
 
 	/**
 	 * Called if the graph options change

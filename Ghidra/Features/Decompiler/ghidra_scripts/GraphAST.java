@@ -18,10 +18,14 @@
 
 import java.util.*;
 
+import java.awt.Color;
+
 import ghidra.app.decompiler.*;
 import ghidra.app.plugin.core.graph.AddressBasedGraphDisplayListener;
 import ghidra.app.script.GhidraScript;
 import ghidra.app.services.GraphDisplayBroker;
+import ghidra.framework.options.Options;
+import ghidra.framework.options.ToolOptions;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.*;
 import ghidra.program.model.lang.Register;
@@ -66,15 +70,17 @@ public class GraphAST extends GhidraScript {
 		graph = new AttributedGraph();
 		buildGraph();
 
-		Map<String, String> properties = new HashMap<>();
-		properties.put(SELECTED_VERTEX_COLOR, "0xFF1493");
-		properties.put(SELECTED_EDGE_COLOR, "0xFF1493");
-		properties.put(INITIAL_LAYOUT_ALGORITHM, "Hierarchical MinCross Coffman Graham");
-		properties.put(DISPLAY_VERTICES_AS_ICONS, "false");
-		properties.put(VERTEX_LABEL_POSITION, "S");
-		properties.put(ENABLE_EDGE_SELECTION, "true");
+		String SUB_CATEGORY = "Default Graph Display";
+		String PREFIX = SUB_CATEGORY+".";
+		Options defaultGraphDisplayOptions = tool.getOptions("Graph");
+		defaultGraphDisplayOptions.setColor(PREFIX+SELECTED_VERTEX_COLOR, Color.cyan);
+		defaultGraphDisplayOptions.setColor(PREFIX+SELECTED_EDGE_COLOR, Color.orange);
+		defaultGraphDisplayOptions.setEnum(PREFIX+INITIAL_LAYOUT_ALGORITHM, GraphDisplay.Layout.MIN_CROSS);
+		defaultGraphDisplayOptions.setEnum(PREFIX+VERTEX_LABEL_POSITION, GraphDisplay.Compass.S);
+		defaultGraphDisplayOptions.setBoolean(PREFIX+ENABLE_EDGE_SELECTION, true);
+
 		GraphDisplay graphDisplay =
-			graphDisplayBroker.getDefaultGraphDisplay(false, properties, monitor);
+			graphDisplayBroker.getDefaultGraphDisplay(false, monitor);
 //        graphDisplay.defineVertexAttribute(CODE_ATTRIBUTE); //
 //        graphDisplay.defineVertexAttribute(SYMBOLS_ATTRIBUTE);
 //        graphDisplay.defineEdgeAttribute(EDGE_TYPE_ATTRIBUTE);

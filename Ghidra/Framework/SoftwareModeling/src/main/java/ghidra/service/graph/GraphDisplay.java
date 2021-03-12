@@ -30,9 +30,27 @@ import ghidra.util.task.TaskMonitor;
  * closed.
  */
 public interface GraphDisplay {
-	public static final int ALIGN_LEFT = 0;  // aligns graph text to the left
-	public static final int ALIGN_CENTER = 1; // aligns graph text to the center
-	public static final int ALIGN_RIGHT = 2; // aligns graph text to the right
+
+	int ALIGN_LEFT = 0;  // aligns graph text to the left
+	int ALIGN_CENTER = 1; // aligns graph text to the center
+	int ALIGN_RIGHT = 2; // aligns graph text to the right
+
+	/**
+	 * General names for classes of Layout Algorithms
+	 */
+	enum Layout {
+		HIERARCHICAL,
+		MIN_CROSS,
+		CIRCLE,
+		FORCE_DIRECTED
+	}
+
+	/**
+	 * Vertex Label placement helper N = North, E = East, etc)
+	 */
+	enum Compass {
+		N,NE,E,SE,S,SW,W,NW;
+	}
 
 	/**
 	 * values are color names or rgb in hex '0xFF0000' is red
@@ -43,14 +61,9 @@ public interface GraphDisplay {
 	 */
 	String SELECTED_EDGE_COLOR = "selectedEdgeColor";
 	/**
-	 * values are defined as String symbols in LayoutFunction class
-	 *
-	 * KAMADA_KAWAI,FRUCTERMAN_REINGOLD,CIRCLE_MINCROSS,TIDIER_TREE,TIDIER_RADIAL_TREE,
-	 * MIN_CROSS_TOP_DOWN,MIN_CROSS_LONGEST_PATH,MIN_CROSS_NETWORK_SIMPLEX,MIN_CROSS_COFFMAN_GRAHAM,
-	 * EXP_MIN_CROSS_TOP_DOWN,EXP_MIN_CROSS_LONGEST_PATH,EXP_MIN_CROSS_NETWORK_SIMPLEX,
-	 * EXP_MIN_CROSS_COFFMAN_GRAHAM,TREE,RADIAL,BALLOON,GEM
-	 *
-	 * may have no meaning for a different graph visualization library
+	 * Values are one of HIERARCHICAL, MIN_CROSS, CIRCLE, FORCE_DIRECTED.
+	 * These general types may be converted to the most appropriate version
+	 * in a given graph visualization library
 	 */
 	String INITIAL_LAYOUT_ALGORITHM = "initialLayoutAlgorithm";
 	/**
@@ -86,7 +99,7 @@ public interface GraphDisplay {
 	 * 
 	 * @param listener the listener to be notified
 	 */
-	public void setGraphDisplayListener(GraphDisplayListener listener);
+	void setGraphDisplayListener(GraphDisplayListener listener);
 
 	/**
 	 * Tells the graph display window to focus the vertex with the given id
@@ -99,20 +112,20 @@ public interface GraphDisplay {
 	 * notify the application the graph changed to avoid event cycles. See {@link EventTrigger} for
 	 * more information.
 	 */
-	public void setFocusedVertex(AttributedVertex vertex, EventTrigger eventTrigger);
+	void setFocusedVertex(AttributedVertex vertex, EventTrigger eventTrigger);
 
 	/**
 	 * Returns the graph for this display
 	 * @return the graph for this display
 	 */
-	public AttributedGraph getGraph();
+	AttributedGraph getGraph();
 
 	/**
 	 * Returns the currently focused vertex or null if no vertex is focused
 	 * 
 	 * @return  the currently focused vertex or null if no vertex is focused
 	 */
-	public AttributedVertex getFocusedVertex();
+	AttributedVertex getFocusedVertex();
 
 	/**
 	 * Tells the graph display window to select the vertices with the given ids
@@ -125,33 +138,33 @@ public interface GraphDisplay {
 	 * application the graph changed to avoid event cycles. See {@link EventTrigger} for more
 	 * information.
 	 */
-	public void selectVertices(Set<AttributedVertex> vertexSet, EventTrigger eventTrigger);
+	void selectVertices(Set<AttributedVertex> vertexSet, EventTrigger eventTrigger);
 
 	/**
 	 * Returns a set of vertex ids for all the currently selected vertices
 	 * 
 	 * @return  a set of vertex ids for all the currently selected vertices
 	 */
-	public Set<AttributedVertex> getSelectedVertices();
+	Set<AttributedVertex> getSelectedVertices();
 
 	/**
 	 * Closes this graph display window.
 	 */
-	public void close();
+	void close();
 
 	/**
 	 * Defines a vertex attribute type for this graph window
 	 * 
 	 * @param name the name of the attribute which may be attached to vertices
 	 */
-	public void defineVertexAttribute(String name);
+	void defineVertexAttribute(String name);
 
 	/**
 	 * Defines an edge attribute type for this graph window
 	 * 
 	 * @param name the name of the attribute which may be attached to edges.
 	 */
-	public void defineEdgeAttribute(String name);
+	void defineEdgeAttribute(String name);
 
 	/**
 	 * Sets the name of the attribute which should be used as the primary vertex label
@@ -162,7 +175,7 @@ public interface GraphDisplay {
 	 * @param monospace true if the font should be monospaced
 	 * @param maxLines the maximum number lines to display in the vertex labels
 	 */
-	public void setVertexLabelAttribute(String attributeName, int alignment, int size,
+	void setVertexLabelAttribute(String attributeName, int alignment, int size,
 			boolean monospace,
 			int maxLines);
 
@@ -175,14 +188,14 @@ public interface GraphDisplay {
 	 * @param append if true, append the new graph to any existing graph
 	 * @throws CancelledException thrown if the graphing operation was cancelled
 	 */
-	public void setGraph(AttributedGraph graph, String title, boolean append,
+	void setGraph(AttributedGraph graph, String title, boolean append,
 			TaskMonitor monitor)
 			throws CancelledException;
 
 	/**
 	 * Clears all graph vertices and edges from this graph display
 	 */
-	public void clear();
+	void clear();
 
 	/**
 	 * Updates a vertex to a new name
@@ -190,14 +203,14 @@ public interface GraphDisplay {
 	 * @param vertex the vertex to rename
 	 * @param newName the new name for the vertex
 	 */
-	public void updateVertexName(AttributedVertex vertex, String newName);
+	void updateVertexName(AttributedVertex vertex, String newName);
 
 	/**
 	 * Returns the title of the current graph
 	 * 
 	 * @return the title of the current graph
 	 */
-	public String getGraphTitle();
+	String getGraphTitle();
 
 	/**
 	 * Adds the action to the graph display. Not all GraphDisplays support adding custom
@@ -205,5 +218,5 @@ public interface GraphDisplay {
 	 * 
 	 * @param action the action to add
 	 */
-	public void addAction(DockingActionIf action);
+	void addAction(DockingActionIf action);
 }

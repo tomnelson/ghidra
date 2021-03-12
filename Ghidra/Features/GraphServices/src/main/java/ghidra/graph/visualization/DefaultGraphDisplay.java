@@ -51,7 +51,6 @@ import org.jungrapht.visualization.renderers.Renderer;
 import org.jungrapht.visualization.renderers.Renderer.VertexLabel;
 import org.jungrapht.visualization.renderers.Renderer.VertexLabel.Position;
 import org.jungrapht.visualization.selection.MutableSelectedState;
-import org.jungrapht.visualization.selection.VertexEndpointsSelectedEdgeSelectedState;
 import org.jungrapht.visualization.transform.*;
 import org.jungrapht.visualization.transform.shape.MagnifyImageLensSupport;
 import org.jungrapht.visualization.transform.shape.MagnifyShapeTransformer;
@@ -109,7 +108,6 @@ public class DefaultGraphDisplay implements GraphDisplay {
 
 	private Logger log = Logger.getLogger(DefaultGraphDisplay.class.getName());
 
-	private Map<String, String> displayProperties;
 	private Set<DockingActionIf> addedActions = new LinkedHashSet<>();
 	private GraphDisplayListener listener = new DummyGraphDisplayListener();
 	private String title;
@@ -201,19 +199,19 @@ public class DefaultGraphDisplay implements GraphDisplay {
 	private ToggleDockingAction togglePopupsAction;
 	private PopupRegulator<AttributedVertex, AttributedEdge> popupRegulator;
 	private GhidraGraphCollapser graphCollapser;
+	private GraphOptionsAdapter options;
 
 	/**
 	 * Create the initial display, the graph-less visualization viewer, and its controls
 	 * @param displayProvider provides a {@link PluginTool} for Docking features
-	 * @param displayProperties graph properties that will override the default graph properties
 	 * @param id the unique display id
 	 */
 	DefaultGraphDisplay(DefaultGraphDisplayProvider displayProvider,
-			Map<String, String> displayProperties, int id) {
+						GraphOptionsAdapter options, int id) {
 		this.graphDisplayProvider = displayProvider;
+		this.options = options;
 		this.displayId = id;
 		this.pluginTool = graphDisplayProvider.getPluginTool();
-		this.displayProperties = displayProperties;
 		this.viewer = createViewer();
 		buildHighlighers();
 
@@ -250,24 +248,19 @@ public class DefaultGraphDisplay implements GraphDisplay {
 	}
 
 	private Color getSelectedVertexColor() {
-		String property = displayProperties.getOrDefault(SELECTED_VERTEX_COLOR, "0xFF0000");
-		return Colors.getHexColor(property);
+		return options.getSelectedVertexColor();
 	}
 
 	private Color getSelectedEdgeColor() {
-		String property = displayProperties.getOrDefault(SELECTED_EDGE_COLOR, "0xFF0000");
-		return Colors.getHexColor(property);
+		return options.getSelectedEdgeColor();
 	}
 
 	private List<String> getEdgeTypePriorityList() {
-		return Arrays.asList(displayProperties
-				.getOrDefault(EDGE_TYPE_PRIORITY_LIST, DEFAULT_EDGE_TYPE_PRIORITY_LIST)
-				.split(","));
+		return Arrays.asList(options.getEdgeTypePriorityList().split(","));
 	}
 
 	private Predicate<AttributedEdge> getFavoredEdgePredicate() {
-		String[] favoredEdges = displayProperties.getOrDefault(FAVORED_EDGES, DEFAULT_FAVORED_EDGES)
-				.split(",");
+		String[] favoredEdges = options.getFavoredEdges().split(",");
 		return attributedEdge -> Arrays.stream(favoredEdges)
 				.anyMatch(s -> s.equals(attributedEdge.getAttribute("EdgeType")));
 	}
@@ -989,16 +982,24 @@ public class DefaultGraphDisplay implements GraphDisplay {
 	}
 
 	private void setInitialLayoutAlgorithm() {
-		if (displayProperties.containsKey(INITIAL_LAYOUT_ALGORITHM)) {
-			String layoutAlgorithmName = displayProperties.get(INITIAL_LAYOUT_ALGORITHM);
-			layoutTransitionManager.setLayout(layoutAlgorithmName);
+		Layout layout = options.getInitialLayout();
+		LayoutAlgorithm<AttributedVertex> initialLayoutAlgorithm;
+		switch(layout) {
+			case CIRCLE:
+				initialLayoutAlgorithm = layoutTransitionManager.layoutFunction.apply(LayoutFunction.CIRCLE).build();
+				break;
+			case MIN_CROSS:
+				initialLayoutAlgorithm = layoutTransitionManager.layoutFunction.apply(LayoutFunction.MIN_CROSS_TOP_DOWN).build();
+				break;
+			case FORCE_DIRECTED:
+				initialLayoutAlgorithm = layoutTransitionManager.layoutFunction.apply(LayoutFunction.KAMADA_KAWAI).build();
+				break;
+			case HIERARCHICAL:
+			default:
+				initialLayoutAlgorithm = layoutTransitionManager.layoutFunction.apply(LayoutFunction.TIDIER_TREE).build();
 		}
-		else {
-			LayoutAlgorithm<AttributedVertex> initialLayoutAlgorithm =
-				layoutTransitionManager.getInitialLayoutAlgorithm();
-			initialLayoutAlgorithm.setAfter(() -> centerAndScale());
-			viewer.getVisualizationModel().setLayoutAlgorithm(initialLayoutAlgorithm);
-		}
+		initialLayoutAlgorithm.setAfter(() -> centerAndScale());
+		viewer.getVisualizationModel().setLayoutAlgorithm(initialLayoutAlgorithm);
 	}
 
 	/**
@@ -1324,9 +1325,7 @@ public class DefaultGraphDisplay implements GraphDisplay {
 			vv.getComponent().removeMouseListener(mouseListener);
 		}
 
-		graphMouse = new JgtGraphMouse(this,
-				Boolean.parseBoolean(displayProperties.getOrDefault(ENABLE_EDGE_SELECTION,
-						"false")));
+		graphMouse = new JgtGraphMouse(this, options.enableEdgeSelection());
 		vv.setGraphMouse(graphMouse);
 
 		return vv;
@@ -1334,10 +1333,9 @@ public class DefaultGraphDisplay implements GraphDisplay {
 
 	private void setVertexPreferences(VisualizationViewer<AttributedVertex, AttributedEdge> vv) {
 		RenderContext<AttributedVertex, AttributedEdge> renderContext = vv.getRenderContext();
-		String useIcons =
-			displayProperties.getOrDefault(DISPLAY_VERTICES_AS_ICONS, Boolean.TRUE.toString());
+		boolean useIcons = options.getDisplayVerticesAsIcons();
 		Function<Shape, Rectangle> toRectangle = s -> RectangleUtils.convert(s.getBounds2D());
-		if (Boolean.parseBoolean(useIcons)) {
+		if (useIcons) {
 			// set up the shape and color functions
 			IconShapeFunction<AttributedVertex> nodeShaper =
 				new IconShapeFunction<>(new EllipseShapeFunction<>());
@@ -1357,10 +1355,8 @@ public class DefaultGraphDisplay implements GraphDisplay {
 							.andThen(toRectangle))
 					.build());
 			vv.getRenderContext().setVertexLabelFunction(Object::toString);
-			vv.getRenderContext()
-					.setVertexLabelPosition(
-						VertexLabel.Position.valueOf(
-							displayProperties.getOrDefault(VERTEX_LABEL_POSITION, "AUTO")));
+			vv.getRenderContext().setVertexLabelPosition(
+						VertexLabel.Position.valueOf(options.getVertexLabelPosition().toString()));
 		}
 	}
 
@@ -1630,5 +1626,4 @@ public class DefaultGraphDisplay implements GraphDisplay {
 			this.enabled = enabled;
 		}
 	}
-
 }

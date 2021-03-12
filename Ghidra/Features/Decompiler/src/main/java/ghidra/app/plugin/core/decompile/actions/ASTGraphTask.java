@@ -15,12 +15,15 @@
  */
 package ghidra.app.plugin.core.decompile.actions;
 
+import java.awt.Color;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import docking.widgets.EventTrigger;
 import ghidra.app.services.GraphDisplayBroker;
+import ghidra.framework.options.Options;
+import ghidra.framework.options.ToolOptions;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.Address;
 import ghidra.program.model.lang.Register;
@@ -105,12 +108,16 @@ public class ASTGraphTask extends Task {
 			else {
 				createControlFlowGraph(graph, monitor);
 			}
-			Map<String, String> properties = new HashMap<>();
-			properties.put(SELECTED_VERTEX_COLOR, "0xFF1493");
-			properties.put(SELECTED_EDGE_COLOR, "0xFF1493");
-			properties.put(INITIAL_LAYOUT_ALGORITHM, "Hierarchical MinCross Coffman Graham");
-			properties.put(ENABLE_EDGE_SELECTION, "true");
-			GraphDisplay display = graphService.getDefaultGraphDisplay(!newGraph, properties, monitor);
+			String SUB_CATEGORY = "Default Graph Display";
+			String PREFIX = SUB_CATEGORY+".";
+			Options defaultGraphDisplayOptions = tool.getOptions("Graph");
+			defaultGraphDisplayOptions.setColor(PREFIX+SELECTED_VERTEX_COLOR, Color.cyan);
+			defaultGraphDisplayOptions.setColor(PREFIX+SELECTED_EDGE_COLOR, Color.orange);
+			defaultGraphDisplayOptions.setEnum(PREFIX+INITIAL_LAYOUT_ALGORITHM, GraphDisplay.Layout.MIN_CROSS);
+			defaultGraphDisplayOptions.setEnum(PREFIX+VERTEX_LABEL_POSITION, GraphDisplay.Compass.S);
+			defaultGraphDisplayOptions.setBoolean(PREFIX+ENABLE_EDGE_SELECTION, true);
+
+			GraphDisplay display = graphService.getDefaultGraphDisplay(!newGraph, monitor);
 			ASTGraphDisplayListener displayListener =
 				new ASTGraphDisplayListener(tool, display, hfunction, graphType);
 			display.setGraphDisplayListener(displayListener);
