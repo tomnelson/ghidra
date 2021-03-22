@@ -22,6 +22,8 @@ import docking.action.builder.ActionBuilder;
 import docking.widgets.EventTrigger;
 import ghidra.app.plugin.core.colorizer.ColorizingService;
 import ghidra.app.util.AddEditDialog;
+import ghidra.framework.options.Options;
+import ghidra.framework.options.ToolOptions;
 import ghidra.framework.plugintool.PluginTool;
 import ghidra.program.model.address.*;
 import ghidra.program.model.block.*;
@@ -143,6 +145,8 @@ public class BlockGraphTask extends Task {
 		AttributedGraph graph = createGraph();
 		monitor.setMessage("Generating Graph...");
 		try {
+			tool.getOptions("Graph").restoreDefaultValues();
+
 			GraphDisplay display = graphProvider.getGraphDisplay(reuseGraph, monitor);
 			BlockModelGraphDisplayListener listener =
 				new BlockModelGraphDisplayListener(tool, blockModel, display);

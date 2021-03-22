@@ -96,45 +96,53 @@ class LayoutFunction
 				return EiglspergerLayoutAlgorithm
 						.<AttributedVertex, AttributedEdge> edgeAwareBuilder()
 						.edgeComparator(edgeTypeComparator)
+						.maxLevelCross(1)
 						.layering(Layering.TOP_DOWN);
 			case MIN_CROSS_LONGEST_PATH:
 				return EiglspergerLayoutAlgorithm
 						.<AttributedVertex, AttributedEdge> edgeAwareBuilder()
 						.edgeComparator(edgeTypeComparator)
+						.maxLevelCross(1)
 						.layering(Layering.LONGEST_PATH);
 			case MIN_CROSS_NETWORK_SIMPLEX:
 				return EiglspergerLayoutAlgorithm
 						.<AttributedVertex, AttributedEdge> edgeAwareBuilder()
 						.edgeComparator(edgeTypeComparator)
+						.maxLevelCross(1)
 						.layering(Layering.NETWORK_SIMPLEX);
 			case MIN_CROSS_COFFMAN_GRAHAM:
 				return EiglspergerLayoutAlgorithm
 						.<AttributedVertex, AttributedEdge> edgeAwareBuilder()
 						.edgeComparator(edgeTypeComparator)
+						.maxLevelCross(1)
 						.layering(Layering.COFFMAN_GRAHAM);
 			case EXP_MIN_CROSS_TOP_DOWN:
 				return EiglspergerLayoutAlgorithm
 						.<AttributedVertex, AttributedEdge> edgeAwareBuilder()
 						.edgeComparator(edgeTypeComparator)
 						.favoredEdgePredicate(favoredEdgePredicate)
+						.maxLevelCross(1)
 						.layering(Layering.TOP_DOWN);
 			case EXP_MIN_CROSS_LONGEST_PATH:
 				return EiglspergerLayoutAlgorithm
 						.<AttributedVertex, AttributedEdge> edgeAwareBuilder()
 						.edgeComparator(edgeTypeComparator)
 						.favoredEdgePredicate(favoredEdgePredicate)
+						.maxLevelCross(1)
 						.layering(Layering.LONGEST_PATH);
 			case EXP_MIN_CROSS_NETWORK_SIMPLEX:
 				return EiglspergerLayoutAlgorithm
 						.<AttributedVertex, AttributedEdge> edgeAwareBuilder()
 						.edgeComparator(edgeTypeComparator)
 						.favoredEdgePredicate(favoredEdgePredicate)
+						.maxLevelCross(1)
 						.layering(Layering.NETWORK_SIMPLEX);
 			case EXP_MIN_CROSS_COFFMAN_GRAHAM:
 				return EiglspergerLayoutAlgorithm
 						.<AttributedVertex, AttributedEdge> edgeAwareBuilder()
 						.edgeComparator(edgeTypeComparator)
 						.favoredEdgePredicate(favoredEdgePredicate)
+						.maxLevelCross(1)
 						.layering(Layering.COFFMAN_GRAHAM);
 			case RADIAL:
 				return RadialTreeLayoutAlgorithm

@@ -33,6 +33,9 @@ import javax.swing.*;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 
+import ghidra.framework.options.OptionsChangeListener;
+import ghidra.framework.options.ToolOptions;
+import ghidra.util.bean.opteditor.OptionsVetoException;
 import org.apache.commons.lang3.StringUtils;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.AsSubgraph;
@@ -98,7 +101,7 @@ import resources.Icons;
  * </UL>
  * 
  */
-public class DefaultGraphDisplay implements GraphDisplay {
+public class DefaultGraphDisplay implements GraphDisplay, OptionsChangeListener {
 
 	private static final String ACTION_OWNER = "GraphServices";
 
@@ -201,19 +204,29 @@ public class DefaultGraphDisplay implements GraphDisplay {
 	private GhidraGraphCollapser graphCollapser;
 	private GraphOptionsAdapter options;
 
-	/**
-	 * Create the initial display, the graph-less visualization viewer, and its controls
-	 * @param displayProvider provides a {@link PluginTool} for Docking features
-	 * @param id the unique display id
-	 */
+	// manages highlighting of a collection of vertices
+	private MultiSelectedVertexPaintable<AttributedVertex, AttributedEdge> multiSelectedVertexPaintable;
+
+	// manages highlight painting of a single selected vertex
+	private SingleSelectedVertexPaintable<AttributedVertex, AttributedEdge> singleSelectedVertexPaintable;
+
+
+			/**
+             * Create the initial display, the graph-less visualization viewer, and its controls
+             * @param displayProvider provides a {@link PluginTool} for Docking features
+             * @param id the unique display id
+             */
 	DefaultGraphDisplay(DefaultGraphDisplayProvider displayProvider,
 						GraphOptionsAdapter options, int id) {
 		this.graphDisplayProvider = displayProvider;
 		this.options = options;
+		if (options.delegate instanceof ToolOptions) {
+			((ToolOptions)options.delegate).addOptionsChangeListener(this);
+		}
 		this.displayId = id;
 		this.pluginTool = graphDisplayProvider.getPluginTool();
 		this.viewer = createViewer();
-		buildHighlighers();
+		buildHighlighters();
 
 		componentProvider = new DefaultGraphDisplayComponentProvider(this, pluginTool);
 		componentProvider.addToTool();
@@ -304,9 +317,13 @@ public class DefaultGraphDisplay implements GraphDisplay {
 	/**
 	 * create the highlighters ({@code Paintable}s to show which vertices have been selected or focused)
 	 */
-	private void buildHighlighers() {
+	private void buildHighlighters() {
+		// remove any previous highlighters
+		viewer.removePostRenderPaintable(multiSelectedVertexPaintable);
+		viewer.removePostRenderPaintable(singleSelectedVertexPaintable);
+
 		// for highlighting of multiple selected vertices
-		MultiSelectedVertexPaintable<AttributedVertex, AttributedEdge> multiSelectedVertexPaintable =
+		this.multiSelectedVertexPaintable =
 			MultiSelectedVertexPaintable.builder(viewer)
 					.selectionStrokeMin(4.f)
 					.selectionPaint(getSelectedVertexColor())
@@ -314,7 +331,7 @@ public class DefaultGraphDisplay implements GraphDisplay {
 					.build();
 
 		// manages highlight painting of a single selected vertex
-		SingleSelectedVertexPaintable<AttributedVertex, AttributedEdge> singleSelectedVertexPaintable =
+		this.singleSelectedVertexPaintable =
 			SingleSelectedVertexPaintable.builder(viewer)
 					.selectionStrokeMin(4.f)
 					.selectionPaint(getSelectedVertexColor())
@@ -326,7 +343,6 @@ public class DefaultGraphDisplay implements GraphDisplay {
 
 		// draws the location arrow
 		viewer.addPostRenderPaintable(singleSelectedVertexPaintable);
-
 	}
 
 	/**
@@ -1286,13 +1302,13 @@ public class DefaultGraphDisplay implements GraphDisplay {
 					: ProgramGraphFunctions.getEdgeStroke(e));
 
 		// selected edges will be drawn in red (instead of default)
-		Color selectedEdgeColor = getSelectedEdgeColor();
+//		Color selectedEdgeColor = getSelectedEdgeColor();
 		renderContext.setEdgeDrawPaintFunction(
-			e -> isSelected(e) ? selectedEdgeColor : Colors.getColor(e));
+			e -> isSelected(e) ? getSelectedEdgeColor() : Colors.getColor(e));
 		renderContext.setArrowDrawPaintFunction(
-			e -> isSelected(e) ? selectedEdgeColor : Colors.getColor(e));
+			e -> isSelected(e) ? getSelectedEdgeColor() : Colors.getColor(e));
 		renderContext.setArrowFillPaintFunction(
-			e -> isSelected(e) ? selectedEdgeColor : Colors.getColor(e));
+			e -> isSelected(e) ? getSelectedEdgeColor() : Colors.getColor(e));
 
 		// assign the shapes to the modal renderer
 		ModalRenderer<AttributedVertex, AttributedEdge> modalRenderer = vv.getRenderer();
@@ -1626,4 +1642,23 @@ public class DefaultGraphDisplay implements GraphDisplay {
 			this.enabled = enabled;
 		}
 	}
+
+	/**
+	 * Notification that an option changed.
+	 * <p>
+	 * Note: to reject an options change, you can throw a
+	 * {@link OptionsVetoException}.
+	 *
+	 * @param options    options object containing the property that changed
+	 * @param optionName name of option that changed
+	 * @param oldValue   old value of the option
+	 * @param newValue   new value of the option
+	 * @throws OptionsVetoException if a change is rejected
+	 */
+	@Override
+	public void optionsChanged(ToolOptions options, String optionName, Object oldValue, Object newValue) throws OptionsVetoException {
+		this.buildHighlighters();
+		viewer.repaint();
+	}
+
 }

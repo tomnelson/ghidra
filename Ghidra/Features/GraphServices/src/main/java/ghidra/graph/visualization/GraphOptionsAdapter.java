@@ -16,7 +16,10 @@
 package ghidra.graph.visualization;
 
 import ghidra.framework.options.Options;
+import ghidra.framework.options.OptionsChangeListener;
+import ghidra.framework.options.ToolOptions;
 import ghidra.service.graph.GraphDisplay;
+import ghidra.util.bean.opteditor.OptionsVetoException;
 import resources.ResourceManager;
 import utilities.util.FileUtilities;
 

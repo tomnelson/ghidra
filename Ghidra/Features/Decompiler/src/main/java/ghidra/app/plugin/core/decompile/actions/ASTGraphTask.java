@@ -108,15 +108,15 @@ public class ASTGraphTask extends Task {
 			else {
 				createControlFlowGraph(graph, monitor);
 			}
-			String SUB_CATEGORY = "Default Graph Display";
-			String PREFIX = SUB_CATEGORY+".";
-			Options defaultGraphDisplayOptions = tool.getOptions("Graph");
-			defaultGraphDisplayOptions.setColor(PREFIX+SELECTED_VERTEX_COLOR, Color.cyan);
-			defaultGraphDisplayOptions.setColor(PREFIX+SELECTED_EDGE_COLOR, Color.orange);
-			defaultGraphDisplayOptions.setEnum(PREFIX+INITIAL_LAYOUT_ALGORITHM, GraphDisplay.Layout.MIN_CROSS);
-			defaultGraphDisplayOptions.setEnum(PREFIX+VERTEX_LABEL_POSITION, GraphDisplay.Compass.S);
-			defaultGraphDisplayOptions.setBoolean(PREFIX+ENABLE_EDGE_SELECTION, true);
-
+//			String SUB_CATEGORY = "Default Graph Display";
+//			String PREFIX = SUB_CATEGORY+".";
+//			Options defaultGraphDisplayOptions = tool.getOptions("Graph");
+//			defaultGraphDisplayOptions.setColor(PREFIX+SELECTED_VERTEX_COLOR, Color.cyan);
+//			defaultGraphDisplayOptions.setColor(PREFIX+SELECTED_EDGE_COLOR, Color.orange);
+//			defaultGraphDisplayOptions.setEnum(PREFIX+INITIAL_LAYOUT_ALGORITHM, GraphDisplay.Layout.MIN_CROSS);
+//			defaultGraphDisplayOptions.setEnum(PREFIX+VERTEX_LABEL_POSITION, GraphDisplay.Compass.S);
+//			defaultGraphDisplayOptions.setBoolean(PREFIX+ENABLE_EDGE_SELECTION, true);
+//
 			GraphDisplay display = graphService.getDefaultGraphDisplay(!newGraph, monitor);
 			ASTGraphDisplayListener displayListener =
 				new ASTGraphDisplayListener(tool, display, hfunction, graphType);
